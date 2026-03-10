@@ -1,36 +1,82 @@
 call_scene:
   name: Call Scene
-  description: Activate a digitalSTROM scene in a zone.
+  description: Activate a Digital Strom scene in a zone.
   fields:
     zone_id:
       name: Zone ID
-      description: The digitalSTROM zone ID.
+      description: The zone ID.
       required: true
       selector:
         number:
           min: 1
-          max: 65534
+          max: 65533
+          mode: box
     group:
       name: Group
-      description: The digitalSTROM group ID (1=Light, 2=Shade).
+      description: Device group (1=Light, 2=Shade, 3=Heating, 8=Joker).
       default: 1
       selector:
         number:
           min: 0
-          max: 8
+          max: 64
+          mode: box
     scene_number:
       name: Scene Number
-      description: The scene number to activate.
+      description: Scene number (0=Off, 5=Scene1, 17=Scene2, 18=Scene3, 19=Scene4).
       required: true
       selector:
         number:
           min: 0
           max: 127
+          mode: box
 
 pause:
   name: Pause Communication
-  description: Pause all communication with the digitalSTROM server.
+  description: Pause all Digital Strom communication. Use when working with dS Configurator.
 
 resume:
   name: Resume Communication
-  description: Resume communication with the digitalSTROM server.
+  description: Resume Digital Strom communication after pause.
+
+blink_device:
+  name: Blink Device
+  description: Make a device blink for identification. Requires Pro license.
+  fields:
+    dsuid:
+      name: Device dSUID
+      description: The unique ID of the device to blink.
+      required: true
+      selector:
+        text:
+
+save_scene:
+  name: Save Scene
+  description: Save current output values as a scene. Requires Pro license.
+  fields:
+    zone_id:
+      name: Zone ID
+      description: The zone ID.
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 65533
+          mode: box
+    group:
+      name: Group
+      description: Device group.
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 64
+          mode: box
+    scene_number:
+      name: Scene Number
+      description: Scene number to save to.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 127
+          mode: box

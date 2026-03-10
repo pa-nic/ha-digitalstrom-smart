@@ -1,7 +1,12 @@
 """digitalSTROM Smart integration for Home Assistant.
 
-Zone-based, event-driven integration that uses scenes as primary control.
-Minimal bus load compared to traditional per-device polling.
+The definitive Digital Strom integration - zone-based, event-driven,
+scenes as primary control. Minimal bus load.
+
+Free tier: lights, covers, scenes, basic sensors, pause/resume
+Pro tier: climate, energy dashboard, outdoor sensors, device blink, smooth dimming
+
+Developed by Woon IoT BV - https://wooniot.nl
 """
 
 import logging
@@ -13,7 +18,8 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from .api import DigitalStromApi, DigitalStromApiError
 from .const import (
     DOMAIN,
-    PLATFORMS,
+    PLATFORMS_FREE,
+    PLATFORMS_PRO,
     CONN_CLOUD,
     CONF_CONNECTION_TYPE,
     CONF_APP_TOKEN,
@@ -21,6 +27,9 @@ from .const import (
     CONF_CLOUD_USER,
     CONF_CLOUD_PASS,
     CONF_DSS_ID,
+    CONF_PRO_LICENSE,
+    GROUP_LIGHT,
+    GROUP_SHADE,
 )
 from .coordinator import DigitalStromCoordinator
 
@@ -66,13 +75,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     dss_id = entry.data.get(CONF_DSS_ID, "")
     coordinator = DigitalStromCoordinator(hass, api, structure, dss_id=dss_id)
 
+    # Check Pro license
+    pro_key = entry.options.get(CONF_PRO_LICENSE, "")
+    if pro_key:
+        coordinator.pro_enabled = await _check_pro_license(pro_key, dss_id)
+        if coordinator.pro_enabled:
+            _LOGGER.info("Digital Strom Pro features enabled")
+
     # Initial data fetch
     await coordinator.async_config_entry_first_refresh()
 
-    # Fetch scene names from dSS (user-defined names like "Dag", "Avond" etc.)
+    # Fetch scene names and initial states from dSS
     await coordinator.fetch_scene_names()
+    await coordinator.fetch_initial_states()
 
-    # Start event listener (don't await - it long-polls and would block startup)
+    # Pro: fetch climate and sensor data
+    if coordinator.pro_enabled:
+        await coordinator.fetch_climate_data()
+        await coordinator.fetch_sensor_data()
+        await coordinator.fetch_circuit_data()
+
+    # Start event listener (don't await - it long-polls)
     hass.async_create_task(coordinator.start_event_listener())
 
     # Store
@@ -90,7 +113,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # Forward to platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    platforms = list(PLATFORMS_FREE)
+    if coordinator.pro_enabled:
+        platforms.extend(PLATFORMS_PRO)
+    await hass.config_entries.async_forward_entry_setups(entry, platforms)
 
     # Register services
     _register_services(hass)
@@ -100,45 +126,98 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    data = hass.data[DOMAIN].get(entry.entry_id)
+    if not data:
+        return True
+
+    coordinator = data["coordinator"]
+    platforms = list(PLATFORMS_FREE)
+    if coordinator.pro_enabled:
+        platforms.extend(PLATFORMS_PRO)
+
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
 
     if unload_ok:
-        data = hass.data[DOMAIN].pop(entry.entry_id)
-        coordinator = data["coordinator"]
+        hass.data[DOMAIN].pop(entry.entry_id)
         await coordinator.shutdown()
 
     return unload_ok
+
+
+async def _check_pro_license(key: str, dss_id: str) -> bool:
+    """Validate Pro license key with WoonIoT server."""
+    if not key:
+        return False
+    try:
+        from .const import PRO_LICENSE_URL
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                PRO_LICENSE_URL,
+                json={"key": key, "dss_id": dss_id[:8] if dss_id else ""},
+                timeout=aiohttp.ClientTimeout(total=5),
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("valid", False)
+    except Exception:
+        pass
+    # Offline fallback: accept keys starting with "PRO-"
+    return key.startswith("PRO-") and len(key) >= 20
 
 
 def _register_services(hass: HomeAssistant) -> None:
     """Register integration services."""
 
     async def handle_call_scene(call: ServiceCall) -> None:
-        """Handle call_scene service."""
         zone_id = call.data["zone_id"]
         group = call.data.get("group", 1)
         scene = call.data["scene_number"]
-
         for entry_data in hass.data[DOMAIN].values():
-            api = entry_data["api"]
             try:
-                await api.call_scene(zone_id, group, scene)
+                await entry_data["api"].call_scene(zone_id, group, scene)
             except DigitalStromApiError as err:
                 _LOGGER.error("call_scene failed: %s", err)
 
     async def handle_pause(call: ServiceCall) -> None:
-        """Handle pause service."""
         for entry_data in hass.data[DOMAIN].values():
-            coordinator = entry_data["coordinator"]
-            await coordinator.pause()
+            await entry_data["coordinator"].pause()
 
     async def handle_resume(call: ServiceCall) -> None:
-        """Handle resume service."""
+        for entry_data in hass.data[DOMAIN].values():
+            await entry_data["coordinator"].resume()
+
+    async def handle_blink(call: ServiceCall) -> None:
+        """Blink a device for identification. PRO."""
+        dsuid = call.data["dsuid"]
         for entry_data in hass.data[DOMAIN].values():
             coordinator = entry_data["coordinator"]
-            await coordinator.resume()
+            if not coordinator.pro_enabled:
+                _LOGGER.warning("Blink requires Pro license")
+                return
+            try:
+                await entry_data["api"].blink_device(dsuid)
+            except DigitalStromApiError as err:
+                _LOGGER.error("blink failed: %s", err)
+
+    async def handle_save_scene(call: ServiceCall) -> None:
+        """Save current output values as a scene. PRO."""
+        zone_id = call.data["zone_id"]
+        group = call.data.get("group", 1)
+        scene = call.data["scene_number"]
+        for entry_data in hass.data[DOMAIN].values():
+            coordinator = entry_data["coordinator"]
+            if not coordinator.pro_enabled:
+                _LOGGER.warning("Save scene requires Pro license")
+                return
+            try:
+                await entry_data["api"].save_scene(zone_id, group, scene)
+            except DigitalStromApiError as err:
+                _LOGGER.error("save_scene failed: %s", err)
 
     if not hass.services.has_service(DOMAIN, "call_scene"):
         hass.services.async_register(DOMAIN, "call_scene", handle_call_scene)
         hass.services.async_register(DOMAIN, "pause", handle_pause)
         hass.services.async_register(DOMAIN, "resume", handle_resume)
+        hass.services.async_register(DOMAIN, "blink_device", handle_blink)
+        hass.services.async_register(DOMAIN, "save_scene", handle_save_scene)

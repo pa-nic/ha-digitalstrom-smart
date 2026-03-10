@@ -22,6 +22,7 @@ from .const import (
     CONF_ENABLED_ZONES,
     CONF_DSS_ID,
     CONF_INVERT_COVER,
+    CONF_PRO_LICENSE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -224,6 +225,7 @@ class DigitalStromOptionsFlow(config_entries.OptionsFlow):
 
         current_enabled = self._config_entry.data.get(CONF_ENABLED_ZONES, [])
         current_invert = self._config_entry.options.get(CONF_INVERT_COVER, False)
+        current_pro = self._config_entry.options.get(CONF_PRO_LICENSE, "")
 
         schema = vol.Schema(
             {
@@ -238,6 +240,10 @@ class DigitalStromOptionsFlow(config_entries.OptionsFlow):
                     CONF_INVERT_COVER,
                     default=current_invert,
                 ): bool,
+                vol.Optional(
+                    CONF_PRO_LICENSE,
+                    default=current_pro,
+                ): str,
             }
         )
 

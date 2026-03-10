@@ -1,5 +1,6 @@
 """Async API client for digitalSTROM Server (dSS).
 
+Complete JSON API coverage - the definitive dSS client for Home Assistant.
 Developed by Woon IoT BV - https://wooniot.nl
 """
 
@@ -72,6 +73,7 @@ class DigitalStromApi:
     """Async client for dSS JSON API.
 
     Supports both local (application token) and cloud (HTTP Digest + CSRF) auth.
+    Full API coverage: zones, devices, metering, climate, scenes, events.
     Developed by Woon IoT BV.
     """
 
@@ -132,7 +134,7 @@ class DigitalStromApi:
     async def _cloud_get(
         self, url: str, params: dict | None = None, timeout_val: int = 15,
     ) -> tuple[int, Any]:
-        """Execute GET with HTTP Digest auth + CSRF for cloud. Returns (status, json_data)."""
+        """Execute GET with HTTP Digest auth + CSRF for cloud."""
         if params is None:
             params = {}
 
@@ -156,7 +158,6 @@ class DigitalStromApi:
             ssl=self._ssl_context,
             timeout=aiohttp.ClientTimeout(total=timeout_val),
         ) as resp:
-            # Handle 401: parse new challenge and retry
             if resp.status == 401:
                 www_auth = resp.headers.get("WWW-Authenticate", "")
                 self._digest_params = _parse_www_authenticate(www_auth)
@@ -173,7 +174,6 @@ class DigitalStromApi:
                     ssl=self._ssl_context,
                     timeout=aiohttp.ClientTimeout(total=timeout_val),
                 ) as resp2:
-                    # Update CSRF from cookies
                     for cookie in self._session.cookie_jar:
                         if cookie.key == "csrf-token":
                             self._csrf_token = cookie.value
@@ -181,7 +181,6 @@ class DigitalStromApi:
                         return 200, await resp2.json(content_type=None)
                     return resp2.status, None
 
-            # Update CSRF from cookies
             for cookie in self._session.cookie_jar:
                 if cookie.key == "csrf-token":
                     self._csrf_token = cookie.value
@@ -232,7 +231,9 @@ class DigitalStromApi:
         except aiohttp.ClientError as err:
             raise DigitalStromApiError(f"Connection error: {err}") from err
 
-    # --- Authentication ---
+    # =====================================================================
+    # Authentication
+    # =====================================================================
 
     async def connect(self) -> bool:
         """Establish connection and authenticate."""
@@ -241,10 +242,8 @@ class DigitalStromApi:
         return await self._connect_local()
 
     async def _connect_local(self) -> bool:
-        """Login with application token (local)."""
         if not self._app_token:
             raise DigitalStromAuthError("No application token configured")
-
         result = await self._request(
             "/json/system/loginApplication",
             {"loginToken": self._app_token},
@@ -252,26 +251,20 @@ class DigitalStromApi:
         self._session_token = result.get("token")
         if not self._session_token:
             raise DigitalStromAuthError("No session token received")
-
         _LOGGER.info("Connected to dSS (local) at %s", self.base_url)
         return True
 
     async def _connect_cloud(self) -> bool:
-        """Authenticate via cloud (HTTP Digest + CSRF)."""
         await self._ensure_session()
-
-        # Initial GET to base URL: triggers 401 → Digest challenge → 200 + CSRF cookie
         status, _ = await self._cloud_get(self.base_url, {})
         if status != 200:
             raise DigitalStromAuthError(f"Cloud auth failed (HTTP {status})")
-
-        # Verify connection works
         await self.get_version()
         _LOGGER.info("Connected to dSS (cloud) at %s", self.base_url)
         return True
 
     async def request_app_token(self, app_name: str = DSS_APP_NAME) -> str:
-        """Request application token. User must press meter button to approve."""
+        """Request application token. User must approve in dSS admin."""
         result = await self._request(
             "/json/system/requestApplicationToken",
             {"applicationName": app_name},
@@ -293,10 +286,20 @@ class DigitalStromApi:
             pass
         return False
 
-    # --- Data queries ---
+    # =====================================================================
+    # System queries
+    # =====================================================================
 
     async def get_version(self) -> dict:
         return await self._request("/json/system/version")
+
+    async def get_time(self) -> dict:
+        """Get dSS server time."""
+        return await self._request("/json/system/time")
+
+    # =====================================================================
+    # Apartment / Structure queries
+    # =====================================================================
 
     async def get_structure(self) -> dict:
         return await self._request("/json/apartment/getStructure")
@@ -311,7 +314,33 @@ class DigitalStromApi:
         result = await self._request("/json/apartment/getTemperatureControlValues")
         return result.get("zones", [])
 
-    # --- Zone commands ---
+    async def get_sensor_values(self) -> dict:
+        """Get all sensor values: weather, outdoor, and per-zone.
+
+        Returns dict with keys: weather, outdoor, zones
+        PRO FEATURE.
+        """
+        return await self._request("/json/apartment/getSensorValues")
+
+    async def get_circuits(self) -> list[dict]:
+        """Get list of dSM circuits (energy meters).
+
+        PRO FEATURE.
+        """
+        result = await self._request("/json/apartment/getCircuits")
+        return result.get("circuits", [])
+
+    async def get_reachable_groups(self, zone_id: int) -> list[dict]:
+        """Get groups with active devices in a zone."""
+        result = await self._request(
+            "/json/apartment/getReachableGroups",
+            {"id": zone_id},
+        )
+        return result.get("groups", [])
+
+    # =====================================================================
+    # Zone commands (scenes, values, dimming)
+    # =====================================================================
 
     async def call_scene(self, zone_id: int, group: int, scene_number: int) -> None:
         await self._request(
@@ -344,8 +373,53 @@ class DigitalStromApi:
             {"id": zone_id, "groupID": group, "value": max(0, min(255, value))},
         )
 
+    async def increase_value(self, zone_id: int, group: int) -> None:
+        """Increase output value by one step (smooth dimming).
+
+        PRO FEATURE.
+        """
+        await self._request(
+            "/json/zone/increaseValue",
+            {"id": zone_id, "groupID": group},
+        )
+
+    async def decrease_value(self, zone_id: int, group: int) -> None:
+        """Decrease output value by one step (smooth dimming).
+
+        PRO FEATURE.
+        """
+        await self._request(
+            "/json/zone/decreaseValue",
+            {"id": zone_id, "groupID": group},
+        )
+
+    # =====================================================================
+    # Zone scene discovery & naming
+    # =====================================================================
+
+    async def get_reachable_scenes(self, zone_id: int, group: int) -> dict:
+        """Get reachable scenes and their user-defined names.
+
+        Returns: {"reachableScenes": [0, 5, 17, ...], "userSceneNames": [{"sceneNr": 5, "sceneName": "Dag"}, ...]}
+        """
+        return await self._request(
+            "/json/zone/getReachableScenes",
+            {"id": zone_id, "groupID": group},
+        )
+
+    async def get_last_called_scene(self, zone_id: int, group: int) -> int:
+        """Get the last called scene number for a zone/group.
+
+        Returns scene number (int).
+        """
+        result = await self._request(
+            "/json/zone/getLastCalledScene",
+            {"id": zone_id, "groupID": group},
+        )
+        return result.get("scene", -1)
+
     async def get_scene_name(self, zone_id: int, group: int, scene_number: int) -> str:
-        """Get the user-defined scene name from dSS. Returns empty string if not set."""
+        """Get user-defined scene name. Returns empty string if not set."""
         try:
             result = await self._request(
                 "/json/zone/sceneGetName",
@@ -355,27 +429,169 @@ class DigitalStromApi:
         except DigitalStromApiError:
             return ""
 
-    # --- Event subscription ---
+    async def save_scene(self, zone_id: int, group: int, scene_number: int) -> None:
+        """Save current output values as a scene.
+
+        PRO FEATURE.
+        """
+        await self._request(
+            "/json/zone/saveScene",
+            {"id": zone_id, "groupID": group, "sceneNumber": scene_number},
+        )
+
+    # =====================================================================
+    # Zone climate control
+    # =====================================================================
+
+    async def get_temperature_control_status(self, zone_id: int) -> dict:
+        """Get climate control status for a zone.
+
+        Returns: ControlMode, OperationMode, TemperatureValue, NominalValue, ControlValue
+        PRO FEATURE.
+        """
+        return await self._request(
+            "/json/zone/getTemperatureControlStatus",
+            {"id": zone_id},
+        )
+
+    async def get_temperature_control_config(self, zone_id: int) -> dict:
+        """Get climate control configuration for a zone.
+
+        Returns: mode, targetTemperatures (per scene), controlMode params
+        PRO FEATURE.
+        """
+        return await self._request(
+            "/json/zone/getTemperatureControlConfig2",
+            {"id": zone_id},
+        )
+
+    async def set_temperature_control_values(
+        self, zone_id: int, nominal_value: float
+    ) -> None:
+        """Set target temperature for a zone.
+
+        PRO FEATURE.
+        """
+        await self._request(
+            "/json/zone/setTemperatureControlValues",
+            {"id": zone_id, "NominalValue": nominal_value},
+        )
+
+    # =====================================================================
+    # Device queries
+    # =====================================================================
+
+    async def get_device_state(self, dsuid: str) -> bool:
+        """Get device on/off state. Returns True if on."""
+        result = await self._request(
+            "/json/device/getState",
+            {"dsuid": dsuid},
+        )
+        return result.get("isOn", False)
+
+    async def get_device_output_value(self, dsuid: str, offset: int = 0) -> int:
+        """Get device output value at given offset."""
+        result = await self._request(
+            "/json/device/getOutputValue",
+            {"dsuid": dsuid, "offset": offset},
+        )
+        return result.get("value", 0)
+
+    async def get_device_sensor_value(self, dsuid: str, sensor_index: int = 0) -> dict:
+        """Get device sensor value. Returns {sensorIndex, value, age, timestamp}."""
+        return await self._request(
+            "/json/device/getSensorValue2",
+            {"dsuid": dsuid, "sensorIndex": sensor_index},
+        )
+
+    async def blink_device(self, dsuid: str) -> None:
+        """Make a device blink for identification.
+
+        PRO FEATURE.
+        """
+        await self._request(
+            "/json/device/blink",
+            {"dsuid": dsuid},
+        )
+
+    # =====================================================================
+    # Metering (energy history)
+    # =====================================================================
+
+    async def get_metering_latest(
+        self, meter_dsuid: str = ".meters(all)", meter_type: str = "consumption"
+    ) -> list[dict]:
+        """Get latest metering values.
+
+        meter_type: "consumption" (W), "energy" (Wh)
+        PRO FEATURE.
+        """
+        result = await self._request(
+            "/json/metering/getLatest",
+            {"from": meter_dsuid, "type": meter_type},
+        )
+        return result.get("values", [])
+
+    async def get_metering_values(
+        self,
+        meter_dsuid: str,
+        meter_type: str = "consumption",
+        resolution: int = 300,
+        value_count: int = 100,
+        unit: str = "W",
+    ) -> list[dict]:
+        """Get historical metering values.
+
+        resolution: seconds (60, 300, 3600)
+        PRO FEATURE.
+        """
+        result = await self._request(
+            "/json/metering/getValues",
+            {
+                "from": meter_dsuid,
+                "type": meter_type,
+                "resolution": resolution,
+                "valueCount": value_count,
+                "unit": unit,
+            },
+        )
+        return result.get("values", [])
+
+    async def get_circuit_energy(self, dsuid: str) -> int:
+        """Get cumulative energy meter value for a circuit (Ws).
+
+        PRO FEATURE.
+        """
+        result = await self._request(
+            "/json/circuit/getEnergyMeterValue",
+            {"dsuid": dsuid},
+        )
+        return result.get("meterValue", 0)
+
+    # =====================================================================
+    # Event subscription
+    # =====================================================================
 
     async def subscribe_events(self) -> int:
         """Subscribe to dSS events. Returns subscription ID."""
         sub_id = EVENT_SUBSCRIPTION_ID
-        await self._request(
-            "/json/event/subscribe",
-            {"subscriptionID": sub_id, "name": "callScene"},
-        )
-        await self._request(
-            "/json/event/subscribe",
-            {"subscriptionID": sub_id, "name": "undoScene"},
-        )
-        await self._request(
-            "/json/event/subscribe",
-            {"subscriptionID": sub_id, "name": "zoneSensorValue"},
-        )
-        await self._request(
-            "/json/event/subscribe",
-            {"subscriptionID": sub_id, "name": "stateChange"},
-        )
+        event_names = [
+            "callScene",
+            "undoScene",
+            "zoneSensorValue",
+            "stateChange",
+            "deviceSensorValue",
+            "running",
+        ]
+        for name in event_names:
+            try:
+                await self._request(
+                    "/json/event/subscribe",
+                    {"subscriptionID": sub_id, "name": name},
+                )
+            except DigitalStromApiError:
+                # Some events may not be available on all firmware versions
+                _LOGGER.debug("Could not subscribe to event: %s", name)
         _LOGGER.info("Subscribed to dSS events (ID=%d)", sub_id)
         return sub_id
 

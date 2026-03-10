@@ -50,10 +50,12 @@
         "description": "Select which zones to include in Home Assistant.",
         "data": {
           "enabled_zones": "Enabled zones",
-          "invert_cover_position": "Invert cover direction"
+          "invert_cover_position": "Invert cover direction",
+          "pro_license_key": "Pro license key"
         },
         "data_description": {
-          "invert_cover_position": "Enable this if your blinds/screens move in the wrong direction (open/close reversed)"
+          "invert_cover_position": "Enable this if your blinds/screens move in the wrong direction (open/close reversed)",
+          "pro_license_key": "Unlock climate control, energy dashboard, outdoor sensors, device identification and more. Get your key at wooniot.nl/pro"
         }
       }
     }
