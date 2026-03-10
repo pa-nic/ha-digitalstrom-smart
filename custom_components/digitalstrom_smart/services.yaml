@@ -1,0 +1,36 @@
+call_scene:
+  name: Call Scene
+  description: Activate a digitalSTROM scene in a zone.
+  fields:
+    zone_id:
+      name: Zone ID
+      description: The digitalSTROM zone ID.
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 65534
+    group:
+      name: Group
+      description: The digitalSTROM group ID (1=Light, 2=Shade).
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 8
+    scene_number:
+      name: Scene Number
+      description: The scene number to activate.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 127
+
+pause:
+  name: Pause Communication
+  description: Pause all communication with the digitalSTROM server.
+
+resume:
+  name: Resume Communication
+  description: Resume communication with the digitalSTROM server.

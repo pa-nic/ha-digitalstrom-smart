@@ -24,9 +24,12 @@
         "title": "Cloud Connection",
         "description": "Enter your digitalSTROM cloud URL and credentials.",
         "data": {
-          "cloud_url": "Cloud URL (e.g. https://xxxxx.digitalstrom.net)",
+          "cloud_url": "Cloud URL",
           "cloud_user": "Username",
           "cloud_pass": "Password"
+        },
+        "data_description": {
+          "cloud_url": "Example: xxxxx.digitalstrom.net"
         }
       }
     },
@@ -36,7 +39,8 @@
       "token_not_approved": "Token not yet approved. Press the meter button and try again."
     },
     "abort": {
-      "cannot_connect": "Could not connect to dSS after authentication."
+      "cannot_connect": "Could not connect to dSS after authentication.",
+      "already_configured": "This digitalSTROM server is already configured."
     }
   },
   "options": {
