@@ -579,23 +579,24 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
 
     async def _send_telemetry(self) -> None:
         """Send anonymous ping to WoonIoT (best-effort, retry on fail)."""
-        import ssl as _ssl
+        # Get HA version safely
+        try:
+            from homeassistant.const import __version__ as ha_version
+        except ImportError:
+            ha_version = "unknown"
         payload = {
             "v": INTEGRATION_VERSION,
             "zones": len(self.zones),
             "devices": len(self.devices),
             "dss_id": self.dss_id[:8] if self.dss_id else "",
-            "ha": self.hass.config.version,
+            "ha": ha_version,
             "pro": self.pro_enabled,
         }
         # Try up to 3 times with increasing delay
         for attempt in range(3):
             try:
-                # Use permissive SSL (some HA installs have cert issues)
-                ssl_ctx = _ssl.create_default_context()
-                ssl_ctx.check_hostname = False
-                ssl_ctx.verify_mode = _ssl.CERT_NONE
-                conn = aiohttp.TCPConnector(ssl=ssl_ctx)
+                # ssl=False to skip SSL verification without blocking call
+                conn = aiohttp.TCPConnector(ssl=False)
                 async with aiohttp.ClientSession(connector=conn) as session:
                     async with session.post(
                         TELEMETRY_URL,
