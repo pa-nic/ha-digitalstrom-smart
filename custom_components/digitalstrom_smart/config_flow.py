@@ -129,42 +129,34 @@ class DigitalStromSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return DigitalStromOptionsFlow(config_entry)
+        return DigitalStromOptionsFlow()
 
 
 class DigitalStromOptionsFlow(config_entries.OptionsFlow):
     """Handle options for Digital Strom Smart."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self._config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """Manage zones and options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        entry = self.config_entry
+
         coordinator = self.hass.data.get(DOMAIN, {}).get(
-            self._config_entry.entry_id, {}
+            entry.entry_id, {}
         ).get("coordinator")
 
         zone_options = {}
         if coordinator:
             for zone_id, zone_info in coordinator.zones.items():
-                zone_options[zone_id] = f"{zone_info['name']} ({zone_info['device_count']} devices)"
+                zone_options[str(zone_id)] = f"{zone_info['name']} ({zone_info['device_count']} devices)"
 
-        current_enabled = self._config_entry.data.get(CONF_ENABLED_ZONES, [])
-        current_invert = self._config_entry.options.get(CONF_INVERT_COVER, False)
-        current_pro = self._config_entry.options.get(CONF_PRO_LICENSE, "")
+        current_enabled = [str(z) for z in entry.data.get(CONF_ENABLED_ZONES, [])]
+        current_invert = entry.options.get(CONF_INVERT_COVER, False)
+        current_pro = entry.options.get(CONF_PRO_LICENSE, "")
 
         schema = vol.Schema(
             {
-                vol.Optional(
-                    CONF_ENABLED_ZONES,
-                    default=current_enabled,
-                ): vol.All(
-                    vol.Coerce(list),
-                    [vol.In(zone_options)],
-                ),
                 vol.Optional(
                     CONF_INVERT_COVER,
                     default=current_invert,
