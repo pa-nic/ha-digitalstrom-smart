@@ -459,9 +459,13 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                 if d.get("output_mode", 0) > 0]
 
     def get_joker_sensors_in_zone(self, zone_id: int) -> list[dict]:
-        """Get Joker devices that are sensors (outputMode == 0, have binaryInputs)."""
+        """Get Joker devices that are sensors (outputMode == 0, have binaryInputs).
+
+        Devices with outputMode == 0 but NO binaryInputs are wall buttons/switches
+        (TKM200, TKM210, etc.) and should not appear as entities in HA.
+        """
         return [d for d in self.get_joker_devices_in_zone(zone_id)
-                if d.get("output_mode", 0) == 0]
+                if d.get("output_mode", 0) == 0 and d.get("binary_inputs")]
 
     # =====================================================================
     # Event listener
