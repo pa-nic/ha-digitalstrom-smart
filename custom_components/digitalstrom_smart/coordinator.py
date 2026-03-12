@@ -302,15 +302,6 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         Events use sensorValueFloat which is already scaled.
         """
         relevant_types = {SENSOR_TEMPERATURE, SENSOR_HUMIDITY, SENSOR_BRIGHTNESS, SENSOR_CO2}
-        # Expected value ranges for sanity check (scaled values)
-        # If raw value is already in this range, it's a float — don't scale.
-        # If raw value is way outside (e.g., 2499 for temp), divide by 100.
-        sane_ranges = {
-            SENSOR_TEMPERATURE: (-40, 80),    # °C
-            SENSOR_HUMIDITY: (0, 100),         # %
-            SENSOR_BRIGHTNESS: (0, 200000),    # lx (can be very high outdoors)
-            SENSOR_CO2: (100, 10000),          # ppm (fresh air ~400)
-        }
         found_count = 0
         for dsuid, dev in self.devices.items():
             for sensor in dev.get("sensors", []):
@@ -322,23 +313,23 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                     value = result.get("value")
                     if value is not None:
                         raw = float(value)
-                        # Heuristic: if raw value is outside sane range,
-                        # it's likely a raw integer that needs /100 scaling.
-                        # Some devices (EnOcean) return proper floats directly.
-                        lo, hi = sane_ranges.get(stype, (-1e9, 1e9))
-                        if lo <= raw <= hi:
-                            scaled = raw  # already a proper float
+                        # dS-bus devices (dSUID prefix 302ed89f43f0) return raw
+                        # integer values from getSensorValue that need /100 scaling.
+                        # External devices (EnOcean, etc.) return proper floats.
+                        is_ds_bus = dsuid.startswith("302ed89f43f0")
+                        if is_ds_bus and raw > 100:
+                            scaled = raw / 100.0
                         else:
-                            scaled = raw / 100.0  # raw integer, scale down
+                            scaled = raw
                         if dsuid not in self._device_sensor_values:
                             self._device_sensor_values[dsuid] = {}
                         self._device_sensor_values[dsuid][stype] = scaled
                         sensor["value"] = scaled
                         found_count += 1
                         _LOGGER.debug(
-                            "Device sensor %s type=%d idx=%d: raw=%.1f val=%.2f (%s)",
+                            "Device sensor %s type=%d idx=%d: raw=%.1f val=%.2f ds_bus=%s (%s)",
                             dsuid[:16], stype, sensor["index"], raw, scaled,
-                            dev.get("name", "?"),
+                            is_ds_bus, dev.get("name", "?"),
                         )
                 except DigitalStromApiError:
                     _LOGGER.debug("Failed to fetch sensor %d from device %s", sensor["index"], dsuid[:8])

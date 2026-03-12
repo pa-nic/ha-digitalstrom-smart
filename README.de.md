@@ -165,6 +165,11 @@ Home Assistant
 
 ## Änderungsprotokoll
 
+### v2.2.9 (12.03.2026)
+- Sensor-Skalierung behoben: dSUID-Präfix zur zuverlässigen Erkennung von dS-Bus-Geräten (immer Roh /100) vs. EnOcean-Geräten (bereits Float)
+- Behebt falsche Helligkeits- und CO2-Werte (z.B. 2149 lx statt 21,49 lx)
+- Entfernt unzuverlässige bereichsbasierte Heuristik zugunsten deterministischer dSUID-Präfix-Prüfung
+
 ### v2.2.8 (12.03.2026)
 - Geräte-Sensor-Skalierung behoben: intelligente Erkennung von Roh-Integer vs. Float-Werten aus der dSS-API
 - EnOcean-Sensoren (Thermokon) liefern korrekte Floats, dS-Bus-Sensoren (FTW04, TNY210) liefern Roh-Integer — beide werden jetzt korrekt verarbeitet

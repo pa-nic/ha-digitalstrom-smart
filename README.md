@@ -165,6 +165,11 @@ Home Assistant
 
 ## Changelog
 
+### v2.2.9 (2026-03-12)
+- Fix sensor scaling: use dSUID prefix to reliably detect dS-bus devices (always raw /100) vs EnOcean devices (already float)
+- Fixes incorrect brightness and CO2 values (e.g., 2149 lx shown instead of 21.49 lx)
+- Removes unreliable range-based heuristic in favor of deterministic dSUID prefix check
+
 ### v2.2.8 (2026-03-12)
 - Fix device sensor scaling: smart detection of raw integer vs float values from dSS API
 - EnOcean sensors (Thermokon) return proper floats, dS-bus sensors (FTW04, TNY210) return raw integers — both now handled correctly
