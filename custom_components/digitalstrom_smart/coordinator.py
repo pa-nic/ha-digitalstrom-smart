@@ -530,7 +530,8 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         elif name == "zoneSensorValue":
             zone_id = int(props.get("zoneID", 0))
             sensor_type = int(props.get("sensorType", -1))
-            value = props.get("sensorValue")
+            # Prefer sensorValueFloat (properly scaled) over sensorValue (raw integer)
+            value = props.get("sensorValueFloat", props.get("sensorValue"))
 
             if zone_id and value is not None:
                 if zone_id not in self._temperatures:
@@ -542,7 +543,8 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         elif name == "deviceSensorValue":
             dsuid = props.get("dsuid", "")
             sensor_type = int(props.get("sensorType", -1))
-            value = props.get("sensorValue")
+            # Prefer sensorValueFloat (properly scaled) over sensorValue (raw integer)
+            value = props.get("sensorValueFloat", props.get("sensorValue"))
             if dsuid and value is not None:
                 # Update device sensor values cache
                 if dsuid not in self._device_sensor_values:
