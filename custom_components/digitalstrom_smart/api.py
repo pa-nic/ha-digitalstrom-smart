@@ -322,6 +322,18 @@ class DigitalStromApi:
         """
         return await self._request("/json/apartment/getSensorValues")
 
+    async def get_zone_sensor_values(self, zone_id: int) -> dict:
+        """Get sensor values for a specific zone.
+
+        Returns pre-scaled values (TemperatureValue, HumidityValue,
+        CO2concentrationValue, BrightnessValue, etc.).
+        FREE — no license required.
+        """
+        return await self._request(
+            "/json/zone/getSensorValues",
+            {"id": zone_id},
+        )
+
     async def get_circuits(self) -> list[dict]:
         """Get list of dSM circuits (energy meters).
 

@@ -306,28 +306,53 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
             pass
 
     async def fetch_device_sensors(self) -> None:
-        """Log device sensor values loaded from structure.
+        """Fetch initial device sensor values from zone API.
 
-        Sensor values are pre-scaled by the dSS and loaded from the
-        apartment/getStructure response during _parse_structure().
+        The dSS getStructure often returns value=0.0/valid=False for
+        climate sensors. Instead, use zone/getSensorValues which returns
+        pre-scaled correct values. Map these back to the devices in each zone.
+
         After startup, real-time updates come via deviceSensorValue events
-        (using sensorValueFloat, which is also pre-scaled by the dSS).
-
-        No getSensorValue API calls needed — the dSS handles all
-        bus-encoding conversions internally.
+        (using sensorValueFloat, also pre-scaled by the dSS).
         """
-        count = sum(len(v) for v in self._device_sensor_values.values())
-        _LOGGER.info(
-            "Device sensors from structure: %d values across %d devices",
-            count, len(self._device_sensor_values),
-        )
-        for dsuid, values in self._device_sensor_values.items():
-            dev = self.devices.get(dsuid, {})
-            for stype, val in values.items():
-                _LOGGER.debug(
-                    "Device sensor %s type=%d val=%.2f (%s)",
-                    dsuid[:16], stype, val, dev.get("name", "?"),
-                )
+        # Map zone sensor value keys to our sensor type constants
+        zone_value_map = {
+            "TemperatureValue": SENSOR_TEMPERATURE,
+            "HumidityValue": SENSOR_HUMIDITY,
+            "CO2concentrationValue": SENSOR_CO2,
+            "BrightnessValue": SENSOR_BRIGHTNESS,
+        }
+
+        found_count = 0
+        for zone_id, zone_info in self.zones.items():
+            try:
+                data = await self.api.get_zone_sensor_values(zone_id)
+                values = data.get("values", [])
+                for entry in values:
+                    for key, stype in zone_value_map.items():
+                        if key in entry:
+                            val = round(float(entry[key]), 2)
+                            # Find device(s) in this zone with this sensor type
+                            for dsuid in zone_info.get("devices", []):
+                                dev = self.devices.get(dsuid, {})
+                                for sensor in dev.get("sensors", []):
+                                    if sensor.get("type") == stype:
+                                        if dsuid not in self._device_sensor_values:
+                                            self._device_sensor_values[dsuid] = {}
+                                        self._device_sensor_values[dsuid][stype] = val
+                                        sensor["value"] = val
+                                        found_count += 1
+                                        _LOGGER.debug(
+                                            "Zone %d sensor %s=%s → device %s (%s)",
+                                            zone_id, key, val,
+                                            dsuid[:16], dev.get("name", "?"),
+                                        )
+                                        break  # one device per type per zone
+            except DigitalStromApiError:
+                _LOGGER.debug("Failed to fetch zone sensor values for zone %d", zone_id)
+            except Exception:
+                pass
+        _LOGGER.info("Fetched %d device sensor values from zone API", found_count)
 
     def get_scene_display_name(self, zone_id: int, group: int, scene_nr: int) -> str:
         """Get display name: dS custom name or group-specific default."""

@@ -165,6 +165,11 @@ Home Assistant
 
 ## Changelog
 
+### v2.3.2 (2026-03-13)
+- Fetch initial sensor values from zone/getSensorValues API (pre-scaled by dSS)
+- Fixes sensors showing "unknown" at startup when getStructure returns value=0.0
+- No manual bus-encoding conversion — the dSS handles all scaling internally
+
 ### v2.3.1 (2026-03-13)
 - Use pre-scaled sensor values from dSS structure data instead of raw getSensorValue API calls
 - The dSS already handles all bus-encoding conversions — no manual scaling needed
