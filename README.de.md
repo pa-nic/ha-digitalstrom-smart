@@ -38,6 +38,7 @@ Im Gegensatz zu herkömmlichen Integrationen, die jedes Gerät einzeln abfragen,
 - **Temperatursensoren** pro Zone (auch Räume ohne Heizung, aus allen verfügbaren Quellen: Zonensensoren, Gerätesensoren)
 - **Gerätesensoren** — Ulux und ähnliche Geräte stellen CO2, Helligkeit, Temperatur und Feuchtigkeit als einzelne Sensor-Entitäten bereit
 - **Energieüberwachung** (Gesamtverbrauch auf Wohnungsebene)
+- **Energieüberwachung pro Stromkreis** — Verbrauch pro dSM-Zähler, jeder Zähler als eigenes Gerät
 - **Eventgesteuert** — sofortige Status-Updates bei Betätigung eines Wandschalters
 - **Szenen für alle Gruppen** — Licht-, Beschattungs- und Heizungsszenen
 
@@ -47,7 +48,6 @@ Erweiterte Funktionen mit einem Pro-Lizenzschlüssel von [wooniot.nl/pro](https:
 
 - **Klimasteuerung** — Zieltemperatur, Voreinstellungen (Komfort, Sparen, Nacht, Urlaub), Heiz- und Kühlerkennung
 - **Außenwettersensoren** — Temperatur, Feuchtigkeit, Helligkeit, Wind, Luftdruck, Regenerkennung
-- **Energieüberwachung pro Stromkreis** — Verbrauch pro dSM-Zähler
 - **Geräteidentifikation** — Gerät blinken lassen zur Identifikation
 - **Szenen speichern** — aktuelle Ausgabewerte als neue Szene speichern
 
@@ -115,10 +115,12 @@ Gerätesensoren (Ulux usw.):
 Wohnungsebene:
 - `sensor.dss_power_consumption` — Gesamtleistung (Watt)
 
+Pro Stromkreis (dSM-Zähler):
+- `sensor.<circuit_name>_power` — Leistung pro dSM-Zähler (jeder Zähler als eigenes Gerät)
+
 Pro-Entitäten (Lizenz erforderlich):
 - `climate.<zone>_climate` — Zonen-Klimasteuerung mit Zieltemperatur
 - `sensor.dss_outdoor_*` — Außenwettersensoren
-- `sensor.dss_circuit_*_power` — Verbrauch pro Stromkreis
 - `binary_sensor.dss_rain` — Regenerkennung
 
 ## Dienste
@@ -164,6 +166,12 @@ Home Assistant
 - Klimazonen (Heizung und Kühlung)
 
 ## Änderungsprotokoll
+
+### v2.4.0 (13.03.2026)
+- Energieüberwachung pro Stromkreis (dSM) in die kostenlose Stufe verschoben — jeder dSM-Zähler als eigenes Gerät mit Leistungssensor
+- Automatische Filterung: nur echte dSM-Zähler angezeigt (virtuelle Controller wie Harmony, Sonos, Hue ausgeschlossen)
+- Metering-API korrigiert: jeden Zähler einzeln abfragen (`.meters(all)` liefert keine Einzelwerte)
+- dSM-Zähler erscheinen als separate Geräte, verknüpft mit dem dSS-Server
 
 ### v2.3.3 (13.03.2026)
 - Zone/getSensorValues API für initiale Sensorwerte (vom dSS vorskaliert)

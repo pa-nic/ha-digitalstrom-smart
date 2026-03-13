@@ -3,8 +3,8 @@
 The definitive Digital Strom integration - zone-based, event-driven,
 scenes as primary control. Minimal bus load.
 
-Free tier: lights, covers, scenes, sensors (zone + device), switches (joker)
-Pro tier: climate, energy dashboard, outdoor sensors, rain detection, device blink
+Free tier: lights, covers, scenes, sensors (zone + device), switches (joker), per-dSM energy
+Pro tier: climate, outdoor sensors, rain detection, device blink
 
 Developed by Woon IoT BV - https://wooniot.nl
 """
@@ -93,12 +93,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:
         _LOGGER.warning("Device sensor fetch failed (non-fatal): %s", err)
 
+    # Fetch per-circuit (dSM) power data
+    try:
+        await coordinator.fetch_circuit_data()
+    except Exception as err:
+        _LOGGER.warning("Circuit data fetch failed (non-fatal): %s", err)
+
     # Pro: fetch climate and sensor data
     if coordinator.pro_enabled:
         try:
             await coordinator.fetch_climate_data()
             await coordinator.fetch_sensor_data()
-            await coordinator.fetch_circuit_data()
         except Exception as err:
             _LOGGER.warning("Pro data fetch failed (non-fatal): %s", err)
 

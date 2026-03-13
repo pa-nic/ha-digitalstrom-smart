@@ -38,6 +38,7 @@ Unlike traditional per-device polling integrations, Digital Strom Smart uses the
 - **Temperature sensors** per zone (including rooms without heating, using any available source: zone sensors, device sensors)
 - **Device sensors** — Ulux and similar devices expose CO2, brightness, temperature, and humidity as individual sensor entities
 - **Energy monitoring** (apartment-level power consumption)
+- **Per-circuit energy monitoring** — power consumption per dSM meter, each as its own device
 - **Event-driven** — instant state updates when someone uses a wall switch
 - **Scenes for all groups** — Light, Shade, and Heating scenes
 
@@ -47,7 +48,6 @@ Unlock advanced features with a Pro license key from [wooniot.nl/pro](https://wo
 
 - **Climate control** — target temperature, preset modes (Comfort, Economy, Night, Holiday), heating + cooling detection
 - **Outdoor weather sensors** — temperature, humidity, brightness, wind, air pressure, rain detection
-- **Per-circuit energy monitoring** — power consumption per dSM meter
 - **Device identification** — blink any device for identification
 - **Save scenes** — save current output values as a new scene
 
@@ -115,10 +115,12 @@ Device-level sensors (Ulux, etc.):
 Apartment-level:
 - `sensor.dss_power_consumption` — Total power (Watts)
 
+Per-circuit (dSM meters):
+- `sensor.<circuit_name>_power` — Power per dSM meter (each meter is its own device)
+
 Pro entities (requires license):
 - `climate.<zone>_climate` — Zone climate control with target temperature
 - `sensor.dss_outdoor_*` — Outdoor weather sensors
-- `sensor.dss_circuit_*_power` — Per-circuit power consumption
 - `binary_sensor.dss_rain` — Rain detection
 
 ## Services
@@ -164,6 +166,12 @@ Home Assistant
 - Climate control zones (heating and cooling)
 
 ## Changelog
+
+### v2.4.0 (2026-03-13)
+- Per-circuit (dSM) energy monitoring moved to Free tier — each dSM meter gets its own device with power sensor
+- Automatic filtering: only real dSM meters shown (virtual controllers like Harmony, Sonos, Hue excluded)
+- Fixed metering API: query each meter individually (`.meters(all)` doesn't return per-meter values)
+- dSM meters appear as separate devices linked to the dSS server
 
 ### v2.3.3 (2026-03-13)
 - Use zone/getSensorValues API for initial sensor values (pre-scaled by dSS)

@@ -1,7 +1,7 @@
 """Sensor entities for Digital Strom.
 
-Free: apartment power consumption, zone temperature, device sensors (Ulux CO2/Lux/Temp)
-Pro: outdoor weather sensors, per-circuit power, humidity, brightness
+Free: apartment power, per-circuit (dSM) power, zone temperature, device sensors
+Pro: outdoor weather sensors, humidity, brightness
 """
 
 import logging
@@ -189,8 +189,8 @@ async def async_setup_entry(
                     )
                 )
 
-    # --- PRO: Per-circuit power sensors ---
-    if coordinator.pro_enabled and coordinator.circuits:
+    # --- FREE: Per-circuit (dSM) power sensors ---
+    if coordinator.circuits:
         for circuit in coordinator.circuits:
             dsuid = circuit.get("dSUID", "")
             if dsuid:
@@ -439,7 +439,7 @@ class DigitalStromOutdoorSensor(CoordinatorEntity, SensorEntity):
 
 
 class DigitalStromCircuitSensor(CoordinatorEntity, SensorEntity):
-    """Per-circuit (dSM) power consumption sensor. PRO."""
+    """Per-circuit (dSM) power consumption sensor."""
 
     _attr_has_entity_name = True
     _attr_device_class = SensorDeviceClass.POWER
@@ -455,13 +455,15 @@ class DigitalStromCircuitSensor(CoordinatorEntity, SensorEntity):
         self._dsuid = circuit.get("dSUID", "")
         dss_id = coordinator.dss_id
         circuit_name = circuit.get("name", self._dsuid[:8])
+        hw_name = circuit.get("hwName", "dSM")
         self._attr_unique_id = f"ds_{dss_id}_circuit_{self._dsuid}"
-        self._attr_name = f"Circuit {circuit_name}"
+        self._attr_name = "Power"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{dss_id}_apartment")},
-            "name": "Digital Strom Server",
+            "identifiers": {(DOMAIN, f"{dss_id}_circuit_{self._dsuid}")},
+            "name": circuit_name,
             "manufacturer": MANUFACTURER,
-            "model": "dSS",
+            "model": hw_name,
+            "via_device": (DOMAIN, f"{dss_id}_apartment"),
         }
 
     @property

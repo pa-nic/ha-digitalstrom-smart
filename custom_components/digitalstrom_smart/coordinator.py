@@ -277,20 +277,35 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
             pass
 
     async def fetch_circuit_data(self) -> None:
-        """Fetch circuit/meter information. PRO."""
-        if not self.pro_enabled:
-            return
+        """Fetch dSM circuit/meter information and per-circuit power."""
         try:
             if not self._circuits:
-                self._circuits = await self.api.get_circuits()
-            # Fetch per-circuit power
-            values = await self.api.get_metering_latest()
-            for v in values:
-                dsuid = v.get("dSUID", "")
-                if dsuid:
-                    self._circuit_power[dsuid] = v.get("value", 0)
-        except DigitalStromApiError:
-            pass
+                all_circuits = await self.api.get_circuits()
+                # Only keep real dSM meters (not virtual controllers)
+                self._circuits = [
+                    c for c in all_circuits
+                    if c.get("hwName", "").startswith("dSM")
+                ]
+                _LOGGER.info(
+                    "Found %d dSM meters: %s",
+                    len(self._circuits),
+                    ", ".join(c.get("name", "") for c in self._circuits),
+                )
+            # Fetch per-circuit power (must query each meter individually)
+            for circuit in self._circuits:
+                dsuid = circuit.get("dSUID", "")
+                if not dsuid:
+                    continue
+                try:
+                    values = await self.api.get_metering_latest(
+                        meter_dsuid=f".meters({dsuid})"
+                    )
+                    for v in values:
+                        self._circuit_power[dsuid] = int(v.get("value", 0))
+                except DigitalStromApiError:
+                    pass
+        except DigitalStromApiError as err:
+            _LOGGER.debug("Circuit data fetch failed: %s", err)
 
     async def fetch_device_sensors(self) -> None:
         """Fetch initial device sensor values via zone/getSensorValues.
@@ -626,11 +641,13 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                     existing.update(zone_data)
                     self._temperatures[zone_id] = existing
 
+            # Per-circuit power (FREE)
+            await self.fetch_circuit_data()
+
             # Pro features: extra data
             if self.pro_enabled:
                 await self.fetch_sensor_data()
                 await self.fetch_climate_data()
-                await self.fetch_circuit_data()
 
         except DigitalStromAuthError:
             _LOGGER.warning("Auth error during poll, reconnecting...")
