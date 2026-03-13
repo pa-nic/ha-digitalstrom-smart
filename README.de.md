@@ -168,68 +168,25 @@ Home Assistant
 ## Änderungsprotokoll
 
 ### v2.4.0 (13.03.2026)
-- Energieüberwachung pro Stromkreis (dSM) in die kostenlose Stufe verschoben — jeder dSM-Zähler als eigenes Gerät mit Leistungssensor
-- Automatische Filterung: nur echte dSM-Zähler angezeigt (virtuelle Controller wie Harmony, Sonos, Hue ausgeschlossen)
-- Metering-API korrigiert: jeden Zähler einzeln abfragen (`.meters(all)` liefert keine Einzelwerte)
-- dSM-Zähler erscheinen als separate Geräte, verknüpft mit dem dSS-Server
-
-### v2.3.3 (13.03.2026)
-- Zone/getSensorValues API für initiale Sensorwerte (vom dSS vorskaliert)
-- Alle manuelle Bus-Kodierung entfernt (raw/40, raw/100) — der dSS skaliert selbst
-- getSensorValue API-Aufrufe komplett entfernt — kein Sensor-Polling pro Gerät
-- Code-Bereinigung: Helper extrahiert, toter Code entfernt, Import-Platzierung korrigiert
-- Der dSS übernimmt alle Bus-Encoding-Konvertierungen — keine manuelle Skalierung nötig
-- Entfernt fragile gerätespezifische Skalierungslogik (raw/40, raw/100 usw.)
-- Sensorwerte stimmen jetzt immer mit dem überein, was der dSS meldet
-
-### v2.3.0 (12.03.2026)
-- dS-Bus Sensor-Skalierung korrigiert: offizielle dS-Bus 12-Bit-Kodierung pro Sensortyp
-- Temperatur: `raw / 40 - 43.2`, Luftfeuchtigkeit: `raw / 40` (nicht raw/100)
-- Gegen dSS Zone-API-Werte verifiziert — stimmt jetzt exakt überein
-- Behebt falsche Luftfeuchtigkeit (zeigte ~22% statt ~56%) und Temperaturabweichungen bei dS-Bus-Geräten
-
-### v2.2.9 (12.03.2026)
-- Sensor-Skalierung behoben: dSUID-Präfix zur zuverlässigen Erkennung von dS-Bus-Geräten (immer Roh /100) vs. EnOcean-Geräten (bereits Float)
-- Behebt falsche Helligkeits- und CO2-Werte (z.B. 2149 lx statt 21,49 lx)
-- Entfernt unzuverlässige bereichsbasierte Heuristik zugunsten deterministischer dSUID-Präfix-Prüfung
-
-### v2.2.8 (12.03.2026)
-- Geräte-Sensor-Skalierung behoben: intelligente Erkennung von Roh-Integer vs. Float-Werten aus der dSS-API
-- EnOcean-Sensoren (Thermokon) liefern korrekte Floats, dS-Bus-Sensoren (FTW04, TNY210) liefern Roh-Integer — beide werden jetzt korrekt verarbeitet
-- FTW04 Temperatur-/Feuchtigkeitssensoren zeigen jetzt korrekte Werte
-- Ulux/TNY210 CO2-, Helligkeits-, Temperatur- und Feuchtigkeitssensoren unterstützt
-- Verbesserte Startup-Protokollierung für Geräte-Sensor-Erkennung
-
-### v2.2.5 (12.03.2026)
-- Joker-Aktoren (outputMode > 0) erstellen jetzt **Switch**-Entitäten
-- Joker-Sensoren (outputMode == 0) erstellen jetzt **Binary Sensor**-Entitäten mit automatischer Geräteklassenerkennung (Tür, Fenster, Rauch, Bewegung usw.)
-- binary_sensor-Plattform in die kostenlose Stufe verschoben
-
-### v2.2.4 (12.03.2026)
-- Sensorwerte wurden 100x zu hoch angezeigt — behoben (`sensorValueFloat` statt `sensorValue` aus dSS-Events)
-
-### v2.2.3 (12.03.2026)
-- Individuelle Joker-Geräteschalter mit Namen aus dem dS Konfigurator
-- Gerätesteuerung über `/json/device/turnOn` und `/json/device/turnOff`
+- **Energieüberwachung pro Stromkreis (dSM)** in die kostenlose Stufe verschoben — jeder dSM-Zähler als eigenes Gerät mit Leistungssensor
+- **Sensor-Zuverlässigkeit** — dSS Zone-API für vorskalierte Werte, alle manuelle Bus-Kodierung entfernt
+- Automatische dSM-Filterung (virtuelle Controller ausgeschlossen)
+- Sensorwerte stimmen jetzt immer exakt mit dem dSS überein, unabhängig vom Gerätetyp
 
 ### v2.2.0 (11.03.2026)
-- Ulux-Gerätesensoren (CO2, Helligkeit, Temperatur, Feuchtigkeit)
-- Kühlerkennung für Klimasteuerung (HVACMode.COOL)
+- **Kostenlos/Pro-Stufen-Aufteilung** mit Lizenzschlüsselsystem ([wooniot.nl/pro](https://wooniot.nl/pro))
+- **Individuelle Joker-Schalter** — Einzelgerätesteuerung mit Namen aus dem dS Konfigurator
+- **Joker-Binärsensoren** — Kontakt-, Rauch-, Türsensoren mit automatischer Geräteklassenerkennung
+- **Gerätesensoren** — Ulux CO2, Helligkeit, Temperatur, Feuchtigkeit als einzelne Entitäten
+- **Klimasteuerung** (Pro) — Zieltemperatur, Voreinstellungen, Heiz- und Kühlerkennung
+- **Außenwettersensoren** (Pro) — Temperatur, Feuchtigkeit, Helligkeit, Wind, Luftdruck, Regen
+- **Szenenerkennung** mit benutzerdefinierten Namen aus dem dS Konfigurator
 - Temperatur für Räume ohne Heizung (aus allen verfügbaren Quellen)
-- Joker (Gruppe 8) Unterstützung
-- Regensensor von Außenwetterstation
-- Pause/Fortsetzen entfernt (nicht mehr erforderlich)
-- Verbesserungen der Telemetrie-Zuverlässigkeit
 
-### v2.0.0 (10.03.2026)
-- Kostenlos/Pro-Stufen-Aufteilung mit Lizenzschlüsselsystem
-- Klimasteuerung (Pro)
-- Außenwettersensoren (Pro)
-- Energieüberwachung pro Stromkreis (Pro)
-- Szenenerkennung mit benutzerdefinierten Namen
-
-### v1.0.0
-- Erstveröffentlichung: Beleuchtung, Beschattung, Szenen, Sensoren, Energie
+### v1.0.0 (10.03.2026)
+- Erstveröffentlichung: zonenbasierte Beleuchtung, Beschattung, Szenen, Temperatursensoren, Energieüberwachung
+- Eventgesteuerte Architektur mit Echtzeit-Status-Updates
+- Lokale und Cloud-Verbindung
 
 ## Über uns
 

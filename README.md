@@ -168,68 +168,25 @@ Home Assistant
 ## Changelog
 
 ### v2.4.0 (2026-03-13)
-- Per-circuit (dSM) energy monitoring moved to Free tier — each dSM meter gets its own device with power sensor
-- Automatic filtering: only real dSM meters shown (virtual controllers like Harmony, Sonos, Hue excluded)
-- Fixed metering API: query each meter individually (`.meters(all)` doesn't return per-meter values)
-- dSM meters appear as separate devices linked to the dSS server
-
-### v2.3.3 (2026-03-13)
-- Use zone/getSensorValues API for initial sensor values (pre-scaled by dSS)
-- Removed all manual bus-encoding (raw/40, raw/100) — the dSS handles scaling
-- Removed getSensorValue API calls entirely — no per-device sensor polling
-- Code cleanup: extracted helper, removed dead code, fixed import placement
-- The dSS already handles all bus-encoding conversions — no manual scaling needed
-- Removes fragile device-specific scaling logic (raw/40, raw/100, etc.)
+- **Per-dSM energy monitoring** moved to Free tier — each dSM meter gets its own device with power sensor
+- **Sensor reliability** — uses dSS zone API for pre-scaled values, removed all manual bus-encoding
+- Automatic dSM filtering (virtual controllers excluded)
 - Sensor values now always match what the dSS reports, regardless of device type
 
-### v2.3.0 (2026-03-12)
-- Fix dS-bus sensor scaling: use official dS bus 12-bit encoding per sensor type
-- Temperature: `raw / 40 - 43.2`, Humidity: `raw / 40` (not raw/100)
-- Verified against dSS zone API values — now matches exactly
-- Fixes wrong humidity (showed ~22% instead of ~56%) and temperature offsets on dS-bus devices
-
-### v2.2.9 (2026-03-12)
-- Fix sensor scaling: use dSUID prefix to reliably detect dS-bus devices (always raw /100) vs EnOcean devices (already float)
-- Fixes incorrect brightness and CO2 values (e.g., 2149 lx shown instead of 21.49 lx)
-- Removes unreliable range-based heuristic in favor of deterministic dSUID prefix check
-
-### v2.2.8 (2026-03-12)
-- Fix device sensor scaling: smart detection of raw integer vs float values from dSS API
-- EnOcean sensors (Thermokon) return proper floats, dS-bus sensors (FTW04, TNY210) return raw integers — both now handled correctly
-- FTW04 temperature/humidity sensors now display correct values
-- Ulux/TNY210 CO2, brightness, temperature, humidity sensors supported
-- Improved startup logging for device sensor discovery
-
-### v2.2.5 (2026-03-12)
-- Joker actuators (outputMode > 0) now create **switch** entities
-- Joker sensors (outputMode == 0) now create **binary_sensor** entities with auto-detected device class (door, window, smoke, motion, etc.)
-- binary_sensor platform moved to Free tier
-
-### v2.2.4 (2026-03-12)
-- Fix sensor values displayed 100x too high (use `sensorValueFloat` from dSS events)
-
-### v2.2.3 (2026-03-12)
-- Individual Joker device switches with names from dS Configurator
-- Device-level control via `/json/device/turnOn` and `/json/device/turnOff`
-
 ### v2.2.0 (2026-03-11)
-- Ulux device sensors (CO2, brightness, temperature, humidity)
-- Climate cooling detection (HVACMode.COOL)
+- **Free/Pro tier split** with license key system ([wooniot.nl/pro](https://wooniot.nl/pro))
+- **Individual Joker switches** — per-device control with names from dS Configurator
+- **Joker binary sensors** — contact, smoke, door sensors with auto-detected device class
+- **Device sensors** — Ulux CO2, brightness, temperature, humidity as individual entities
+- **Climate control** (Pro) — target temperature, presets, heating + cooling detection
+- **Outdoor weather sensors** (Pro) — temperature, humidity, brightness, wind, pressure, rain
+- **Scene discovery** with user-defined names from dS Configurator
 - Temperature for rooms without heating (any available source)
-- Joker (group 8) support
-- Rain sensor from outdoor weather station
-- Removed Pause/Resume (no longer needed)
-- Telemetry reliability improvements
 
-### v2.0.0 (2026-03-10)
-- Free/Pro tier split with license key system
-- Climate control (Pro)
-- Outdoor weather sensors (Pro)
-- Per-circuit energy monitoring (Pro)
-- Scene discovery with user-defined names
-
-### v1.0.0
-- Initial release: lights, covers, scenes, sensors, energy
+### v1.0.0 (2026-03-10)
+- Initial release: zone-based lights, covers, scenes, temperature sensors, energy monitoring
+- Event-driven architecture with real-time state updates
+- Local and cloud connection support
 
 ## About
 
