@@ -106,12 +106,16 @@ APARTMENT_ALARM_SCENES = {
     SCENE_ALARM_4: "Alarm 4",
     SCENE_PANIC: "Panic",
     SCENE_DOOR_BELL: "Doorbell",
+}
+
+# Weather protection scenes — read-only binary sensors, not switches
+APARTMENT_WEATHER_SCENES = {
     SCENE_WIND: "Wind",
     SCENE_RAIN: "Rain",
 }
 
-# All alarm scene numbers (for detection in events)
-ALARM_SCENE_NUMBERS = set(APARTMENT_ALARM_SCENES.keys())
+# All alarm scene numbers (for detection in events) — includes weather protection
+ALARM_SCENE_NUMBERS = set(APARTMENT_ALARM_SCENES.keys()) | set(APARTMENT_WEATHER_SCENES.keys())
 
 # Cover scenes
 SCENE_COVER_OPEN = 5    # Up / Open

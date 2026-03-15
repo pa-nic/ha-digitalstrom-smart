@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MANUFACTURER, GROUP_JOKER, CONF_ENABLED_ZONES
+from .const import DOMAIN, MANUFACTURER, GROUP_JOKER, CONF_ENABLED_ZONES, APARTMENT_WEATHER_SCENES, SCENE_RAIN
 from .coordinator import DigitalStromCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,6 +75,13 @@ async def async_setup_entry(
     if coordinator.pro_enabled and coordinator.outdoor_sensors and "rain" in coordinator.outdoor_sensors:
         entities.append(DigitalStromRainSensor(coordinator))
 
+    # --- PRO: Weather protection binary sensors (Wind, Rain scenes) ---
+    if coordinator.pro_enabled:
+        for scene_nr, name in APARTMENT_WEATHER_SCENES.items():
+            entities.append(
+                DigitalStromWeatherProtectionSensor(coordinator, scene_nr, name)
+            )
+
     async_add_entities(entities)
 
 
@@ -125,6 +132,46 @@ class DigitalStromJokerBinarySensor(CoordinatorEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         return self.coordinator.get_device_on_state(self._dsuid)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self.async_write_ha_state()
+
+
+class DigitalStromWeatherProtectionSensor(CoordinatorEntity, BinarySensorEntity):
+    """Weather protection binary sensor (Wind/Rain scenes). PRO.
+
+    These are triggered automatically by the dSS when weather thresholds
+    are exceeded. Read-only — not controllable by the user.
+    """
+
+    _attr_has_entity_name = True
+
+    _ICONS = {
+        "Wind": "mdi:weather-windy",
+        "Rain": "mdi:weather-rainy",
+    }
+
+    def __init__(
+        self, coordinator: DigitalStromCoordinator, scene_nr: int, name: str,
+    ) -> None:
+        super().__init__(coordinator)
+        self._scene_nr = scene_nr
+        dss_id = coordinator.dss_id
+        self._attr_unique_id = f"ds_{dss_id}_weather_{scene_nr}"
+        self._attr_name = f"{name} Protection"
+        self._attr_icon = self._ICONS.get(name, "mdi:alert")
+        self._attr_device_class = BinarySensorDeviceClass.MOISTURE if scene_nr == SCENE_RAIN else BinarySensorDeviceClass.SAFETY
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{dss_id}_apartment")},
+            "name": "Digital Strom Server",
+            "manufacturer": MANUFACTURER,
+            "model": "dSS",
+        }
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.is_alarm_active(self._scene_nr)
 
     @callback
     def _handle_coordinator_update(self) -> None:
