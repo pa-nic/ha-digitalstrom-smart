@@ -141,34 +141,74 @@ class DigitalStromClimate(CoordinatorEntity, ClimateEntity):
                 return nv
         return self.coordinator.get_temperature(self._zone_id)
 
+    def _safe_int(self, value, default: int = 0) -> int:
+        """Convert value to int safely (dSS may return strings)."""
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except ValueError:
+                return default
+        return default
+
+    def _is_cooling_mode(self, status: dict) -> bool:
+        """Detect if zone is in cooling mode from status or config."""
+        # Check status ControlMode (integer on some dSS, string on others)
+        control_mode = self._safe_int(
+            status.get("ControlMode"), -1
+        )
+        if control_mode in (CONTROL_MODE_COOLING, CONTROL_MODE_COOL_OFF):
+            return True
+        # Check config ControlMode (may be string like "control")
+        config = self.coordinator.get_climate_config(self._zone_id)
+        if config:
+            cfg_mode = self._safe_int(config.get("ControlMode"), -1)
+            if cfg_mode in (CONTROL_MODE_COOLING, CONTROL_MODE_COOL_OFF):
+                return True
+        # Check ControlState or OperationMode hints
+        control_state = str(status.get("ControlState", "")).lower()
+        if "cool" in control_state:
+            return True
+        return False
+
     @property
     def hvac_mode(self) -> HVACMode:
         status = self.coordinator.get_climate_status(self._zone_id)
-        if status:
-            op_mode = status.get("OperationMode", 0)
-            if op_mode == 0:
-                return HVACMode.OFF
-            # Check ControlMode for heating vs cooling
-            control_mode = status.get("ControlMode", CONTROL_MODE_PID)
-            if control_mode in (CONTROL_MODE_COOLING, CONTROL_MODE_COOL_OFF):
-                return HVACMode.COOL
+        if not status:
+            return HVACMode.HEAT
+        _LOGGER.debug(
+            "Zone %d (%s) climate status: %s",
+            self._zone_id, self._zone_name, status,
+        )
+        op_mode = self._safe_int(status.get("OperationMode"), 0)
+        if op_mode == 0:
+            return HVACMode.OFF
+        if self._is_cooling_mode(status):
+            return HVACMode.COOL
         return HVACMode.HEAT
 
     @property
     def hvac_action(self) -> HVACAction | None:
         status = self.coordinator.get_climate_status(self._zone_id)
-        if status:
-            op_mode = status.get("OperationMode", 0)
-            if op_mode == 0:
-                return HVACAction.OFF
-            control_value = status.get("ControlValue", 0)
-            control_mode = status.get("ControlMode", CONTROL_MODE_PID)
-            if control_value > 0:
-                if control_mode in (CONTROL_MODE_COOLING, CONTROL_MODE_COOL_OFF):
-                    return HVACAction.COOLING
-                return HVACAction.HEATING
-            return HVACAction.IDLE
-        return None
+        if not status:
+            return None
+        op_mode = self._safe_int(status.get("OperationMode"), 0)
+        if op_mode == 0:
+            return HVACAction.OFF
+        control_value = status.get("ControlValue", 0)
+        if isinstance(control_value, str):
+            try:
+                control_value = float(control_value)
+            except ValueError:
+                control_value = 0
+        if control_value > 0:
+            if self._is_cooling_mode(status):
+                return HVACAction.COOLING
+            return HVACAction.HEATING
+        return HVACAction.IDLE
 
     @property
     def preset_mode(self) -> str | None:
