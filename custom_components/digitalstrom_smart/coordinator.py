@@ -692,8 +692,9 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
             state_value = props.get("state", "")
 
             # Apartment-level state changes (rain, etc.) — no dsuid
+            # dSS format: StateApartment;rain;1;active / StateApartment;rain;2;inactive
             if state_name == "rain":
-                is_active = state_value in ("active", "true", "1")
+                is_active = state_value.lower() in ("active", "true", "1")
                 if is_active:
                     self._apartment_alarms.add(SCENE_RAIN)
                 else:
