@@ -53,6 +53,23 @@ _LOGGER = logging.getLogger(__name__)
 SCENE_GROUPS = (GROUP_LIGHT, GROUP_SHADE, GROUP_HEATING)
 
 
+def _is_climate_control_active(control_mode) -> bool:
+    """Check if a ControlMode value indicates active climate control.
+
+    dSS returns ControlMode as int (0=off, 1=PID, 11=cooling, etc.)
+    or as string ("control", "pid", etc.) depending on firmware.
+    """
+    if control_mode is None or control_mode == "" or control_mode == 0:
+        return False
+    if isinstance(control_mode, (int, float)):
+        return control_mode > 0
+    if isinstance(control_mode, str):
+        if control_mode in ("0", "off", ""):
+            return False
+        return True  # any other string = active
+    return False
+
+
 class DigitalStromCoordinator(DataUpdateCoordinator):
     """Coordinator: manages event listener + periodic polling."""
 
@@ -260,31 +277,24 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         if not self.pro_enabled:
             return
         for zone_id, zone_info in self.zones.items():
-            # Always try to fetch config (it's a cheap call that returns quickly
-            # for zones without climate control)
+            # Always try to fetch config for zones not yet cached
             if zone_id not in self._climate_config:
                 try:
                     config = await self.api.get_temperature_control_config(zone_id)
-                    control_mode = config.get("ControlMode", config.get("mode", 0))
-                    _LOGGER.debug(
-                        "Zone %d (%s) climate config response: %s",
+                    _LOGGER.info(
+                        "Zone %d (%s) climate config: %s",
                         zone_id, zone_info["name"], config,
                     )
-                    # ControlMode can be int (>0) or string like "control"
-                    has_control = False
-                    if isinstance(control_mode, str) and control_mode not in ("0", "", "off"):
-                        has_control = True
-                    elif isinstance(control_mode, (int, float)) and control_mode > 0:
-                        has_control = True
-                    elif isinstance(control_mode, str):
-                        try:
-                            has_control = int(control_mode) > 0
-                        except ValueError:
-                            has_control = True  # non-numeric string = active
-                    if has_control:
+                    # Any non-empty config response = climate control present
+                    # ControlMode can be int (0=off, >0=active) or string ("control")
+                    control_mode = config.get("ControlMode", config.get("mode", ""))
+                    if _is_climate_control_active(control_mode):
                         self._climate_config[zone_id] = config
-                except DigitalStromApiError:
-                    pass
+                except DigitalStromApiError as err:
+                    _LOGGER.debug(
+                        "Zone %d (%s) no climate config: %s",
+                        zone_id, zone_info["name"], err,
+                    )
             # Only fetch status if zone has confirmed temp control
             if not self.has_temp_control(zone_id):
                 continue
