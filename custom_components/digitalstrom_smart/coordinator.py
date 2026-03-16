@@ -44,6 +44,7 @@ from .const import (
     PRESENCE_SCENE_NUMBERS,
     ALARM_SCENE_NUMBERS,
     SCENE_PRESENT,
+    SCENE_RAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -264,13 +265,13 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
             if zone_id not in self._climate_config:
                 try:
                     config = await self.api.get_temperature_control_config(zone_id)
-                    control_mode = config.get("ControlMode", 0)
-                    if control_mode > 0:
+                    control_mode = config.get("ControlMode", config.get("mode", 0))
+                    _LOGGER.debug(
+                        "Zone %d (%s) climate config response: %s",
+                        zone_id, zone_info["name"], config,
+                    )
+                    if control_mode and int(control_mode) > 0:
                         self._climate_config[zone_id] = config
-                        _LOGGER.debug(
-                            "Zone %d (%s) climate config: ControlMode=%s",
-                            zone_id, zone_info["name"], control_mode,
-                        )
                 except DigitalStromApiError:
                     pass
             # Only fetch status if zone has confirmed temp control
