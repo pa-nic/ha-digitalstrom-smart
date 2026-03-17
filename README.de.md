@@ -171,6 +171,10 @@ Home Assistant
 
 ## Änderungsprotokoll
 
+### v2.7.6 (17.03.2026)
+- **Kühlmodus-Fix** — Kühlung wird jetzt korrekt erkannt, auch wenn der Heizungs-OperationMode 0 (aus) meldet
+- Kühlprüfung läuft vor der Aus-Erkennung in `hvac_mode` und `hvac_action`
+
 ### v2.4.0 (13.03.2026)
 - **Energieüberwachung pro Stromkreis (dSM)** in die kostenlose Stufe verschoben — jeder dSM-Zähler als eigenes Gerät mit Leistungssensor
 - **Sensor-Zuverlässigkeit** — dSS Zone-API für vorskalierte Werte, alle manuelle Bus-Kodierung entfernt

@@ -197,11 +197,13 @@ class DigitalStromClimate(CoordinatorEntity, ClimateEntity):
                 "Zone %d (%s) climate status: %s",
                 self._zone_id, self._zone_name, status,
             )
+        # Check cooling FIRST — when dSS switches to cooling, the heating
+        # OperationMode becomes 0 (off), but cooling is active
+        if self._is_cooling_mode(status):
+            return HVACMode.COOL
         op_mode = self._safe_int(status.get("OperationMode"), 0)
         if op_mode == 0:
             return HVACMode.OFF
-        if self._is_cooling_mode(status):
-            return HVACMode.COOL
         return HVACMode.HEAT
 
     @property
@@ -209,6 +211,14 @@ class DigitalStromClimate(CoordinatorEntity, ClimateEntity):
         status = self.coordinator.get_climate_status(self._zone_id)
         if not status:
             return None
+        if self._is_cooling_mode(status):
+            control_value = status.get("ControlValue", 0)
+            if isinstance(control_value, str):
+                try:
+                    control_value = float(control_value)
+                except ValueError:
+                    control_value = 0
+            return HVACAction.COOLING if control_value > 0 else HVACAction.IDLE
         op_mode = self._safe_int(status.get("OperationMode"), 0)
         if op_mode == 0:
             return HVACAction.OFF

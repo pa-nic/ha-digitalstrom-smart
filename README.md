@@ -174,6 +174,10 @@ Home Assistant
 
 ## Changelog
 
+### v2.7.6 (2026-03-17)
+- **Cooling mode fix** — cooling is now correctly detected even when heating OperationMode reports 0 (off)
+- Cooling check runs before off-detection in both `hvac_mode` and `hvac_action`
+
 ### v2.7.4 (2026-03-17)
 - **Rain sensor fix** — detects apartment-level stateChange events (StateApartment;rain)
 - **Wind Protection removed** — dSS handles wind protection per device internally, no universal state exists
