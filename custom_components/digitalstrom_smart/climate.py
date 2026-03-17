@@ -155,32 +155,28 @@ class DigitalStromClimate(CoordinatorEntity, ClimateEntity):
         return default
 
     def _is_cooling_mode(self, status: dict) -> bool:
-        """Detect if zone is in cooling mode from status or config.
+        """Detect if zone is in cooling mode.
 
-        The dSS heating controller reports its basic status as "Heating" or
-        "Cooling". This can appear in various fields depending on firmware.
+        Primary: heating_system_mode stateChange event (most reliable).
+        When dSS switches to cooling, the heating controller goes off and
+        getTemperatureControlStatus only returns {ControlMode: 0, ControlState: 0}
+        with NO cooling indicator. The real signal is the apartment-level
+        heating_system_mode event: active=heating, inactive=cooling.
         """
-        # Check all string fields for "cool" keyword
+        # Primary: coordinator tracks heating_system_mode event
+        if self.coordinator.is_cooling_mode:
+            return True
+
+        # Fallback: check status fields for "cool" keyword
         for key in ("ControlMode", "ControlState", "State", "state", "mode"):
             val = str(status.get(key, "")).lower()
             if "cool" in val:
                 return True
 
-        # Check numeric ControlMode (11=cooling, 12=cool_off)
+        # Fallback: numeric ControlMode (11=cooling, 12=cool_off)
         control_mode = self._safe_int(status.get("ControlMode"), -1)
         if control_mode in (CONTROL_MODE_COOLING, CONTROL_MODE_COOL_OFF):
             return True
-
-        # Also check config for cooling mode
-        config = self.coordinator.get_climate_config(self._zone_id)
-        if config:
-            for key in ("ControlMode", "mode", "State"):
-                val = str(config.get(key, "")).lower()
-                if "cool" in val:
-                    return True
-            cfg_mode = self._safe_int(config.get("ControlMode"), -1)
-            if cfg_mode in (CONTROL_MODE_COOLING, CONTROL_MODE_COOL_OFF):
-                return True
 
         return False
 

@@ -171,8 +171,9 @@ Home Assistant
 
 ## Änderungsprotokoll
 
-### v2.7.6 (17.03.2026)
-- **Kühlmodus-Fix** — Kühlung wird jetzt korrekt erkannt, auch wenn der Heizungs-OperationMode 0 (aus) meldet
+### v2.8.0 (17.03.2026)
+- **Kühlmodus-Erkennung via Event** — verwendet `heating_system_mode` stateChange-Event (active=Heizung, inactive=Kühlung) als primäre Erkennungsmethode
+- Wenn dSS auf Kühlung umschaltet, liefert die Heizungs-API nur `{ControlMode: 0}` ohne Kühlindikator — das eigentliche Signal ist das Apartment-Level-Event
 - Kühlprüfung läuft vor der Aus-Erkennung in `hvac_mode` und `hvac_action`
 
 ### v2.4.0 (13.03.2026)

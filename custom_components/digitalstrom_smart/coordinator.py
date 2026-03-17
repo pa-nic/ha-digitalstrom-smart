@@ -126,6 +126,7 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         # Apartment-wide state (PRO)
         self._apartment_presence: int | None = None  # current presence scene nr
         self._apartment_alarms: set[int] = set()     # active alarm scene nrs
+        self._heating_system_cooling: bool = False    # True when system is in cooling mode
 
         # Pro license status
         self.pro_enabled = False
@@ -498,6 +499,11 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
     def get_climate_config(self, zone_id: int) -> dict | None:
         return self._climate_config.get(zone_id)
 
+    @property
+    def is_cooling_mode(self) -> bool:
+        """True when the heating system is in cooling mode (detected via event)."""
+        return self._heating_system_cooling
+
     def get_zone_sensor(self, zone_id: int) -> dict:
         return self._zone_sensors.get(zone_id, {})
 
@@ -743,6 +749,18 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                     state_name, state_value, self._apartment_alarms,
                 )
                 self.async_update_listeners()
+            elif state_name == "heating_system_mode":
+                # Heating controller reports: active=heating, inactive=cooling
+                was_cooling = self._heating_system_cooling
+                self._heating_system_cooling = state_value.lower() in (
+                    "inactive", "off", "cooling",
+                )
+                if was_cooling != self._heating_system_cooling:
+                    _LOGGER.info(
+                        "Heating system mode change: %s → cooling=%s",
+                        state_value, self._heating_system_cooling,
+                    )
+                    self.async_update_listeners()
             elif dsuid and dsuid in self.devices:
                 # Binary input state changes (contacts, smoke, etc.)
                 is_active = state_value in ("active", "true", "1", "open")

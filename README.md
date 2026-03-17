@@ -174,8 +174,9 @@ Home Assistant
 
 ## Changelog
 
-### v2.7.6 (2026-03-17)
-- **Cooling mode fix** — cooling is now correctly detected even when heating OperationMode reports 0 (off)
+### v2.8.0 (2026-03-17)
+- **Cooling mode detection via event** — uses `heating_system_mode` stateChange event (active=heating, inactive=cooling) as the primary cooling detection method
+- When dSS switches to cooling, the heating controller API returns only `{ControlMode: 0}` with no cooling indicator — the real signal is the apartment-level event
 - Cooling check runs before off-detection in both `hvac_mode` and `hvac_action`
 
 ### v2.7.4 (2026-03-17)
