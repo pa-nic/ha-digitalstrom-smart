@@ -136,6 +136,15 @@ Pro entities (requires license):
 | `digitalstrom_smart.blink_device` | Blink a device for identification (dsuid) | Yes |
 | `digitalstrom_smart.save_scene` | Save current output values as a scene | Yes |
 
+## Climate notes
+
+### Passive cooling
+Digital Strom uses **passive cooling** — the dSS does not actively control cooling output. When the system switches to cooling mode:
+- The climate entity shows **Cooling** in Home Assistant
+- Adjusting the target temperature will briefly show the entity as **Idle** — this is normal
+- The switch back to heating takes 1-2 minutes (controlled by the dSS)
+- The minimum setpoint configured in the dSS applies during cooling mode
+
 ## Architecture
 
 ```
@@ -178,6 +187,7 @@ Home Assistant
 - **Cooling mode detection via event** — uses `heating_system_mode` stateChange event (active=heating, inactive=cooling) as the primary cooling detection method
 - When dSS switches to cooling, the heating controller API returns only `{ControlMode: 0}` with no cooling indicator — the real signal is the apartment-level event
 - Cooling check runs before off-detection in both `hvac_mode` and `hvac_action`
+- Passive cooling behavior documented (see Climate notes)
 
 ### v2.7.4 (2026-03-17)
 - **Rain sensor fix** — detects apartment-level stateChange events (StateApartment;rain)

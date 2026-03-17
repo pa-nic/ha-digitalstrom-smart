@@ -135,6 +135,15 @@ Pro-Entitäten (Lizenz erforderlich):
 | `digitalstrom_smart.blink_device` | Gerät blinken lassen zur Identifikation (dsuid) | Ja |
 | `digitalstrom_smart.save_scene` | Aktuelle Ausgabewerte als Szene speichern | Ja |
 
+## Hinweise zur Klimasteuerung
+
+### Passive Kühlung
+Digital Strom verwendet **passive Kühlung** — der dSS steuert die Kühlleistung nicht aktiv. Wenn das System in den Kühlmodus wechselt:
+- Die Klimaentität zeigt **Cooling** in Home Assistant
+- Beim Anpassen der Zieltemperatur wird die Entität kurzzeitig als **Idle** angezeigt — das ist normal
+- Das Zurückschalten auf Heizung dauert 1–2 Minuten (wird vom dSS gesteuert)
+- Der im dSS konfigurierte minimale Sollwert gilt während des Kühlmodus
+
 ## Architektur
 
 ```
@@ -175,6 +184,7 @@ Home Assistant
 - **Kühlmodus-Erkennung via Event** — verwendet `heating_system_mode` stateChange-Event (active=Heizung, inactive=Kühlung) als primäre Erkennungsmethode
 - Wenn dSS auf Kühlung umschaltet, liefert die Heizungs-API nur `{ControlMode: 0}` ohne Kühlindikator — das eigentliche Signal ist das Apartment-Level-Event
 - Kühlprüfung läuft vor der Aus-Erkennung in `hvac_mode` und `hvac_action`
+- Passive Kühlung dokumentiert (siehe Hinweise zur Klimasteuerung)
 
 ### v2.4.0 (13.03.2026)
 - **Energieüberwachung pro Stromkreis (dSM)** in die kostenlose Stufe verschoben — jeder dSM-Zähler als eigenes Gerät mit Leistungssensor
