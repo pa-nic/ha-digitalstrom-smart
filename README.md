@@ -187,13 +187,13 @@ Home Assistant
 
 ## Changelog
 
-### v2.8.5 (2026-03-20)
+### v2.8.6 (2026-03-20)
 - **Binary sensor fix** — contact sensors (doors, windows, UMR, EnOcean) now report correct open/closed state
 - **Fast binary polling** — separate 5-second polling loop for contact/door/window sensors (was 30s)
 - **Correct API** — uses `apartment/getDevices` for binary input state (reliable across all dSS firmware versions)
 - **Polarity fix** — contact-type sensors correctly inverted (dSS "active"=closed, HA on=open). Motion/presence unchanged.
-- **Area scenes** — support for scenes 6-9, 10-14, 20-24, 30-34, 40-44
-- **Dynamic scene discovery** — automatically creates entities for all reachable and named scenes from dSS
+- **Area scenes** (Pro) — support for scenes 6-9, 10-14, 20-24, 30-34, 40-44
+- **Dynamic scene discovery** (Pro) — automatically creates entities for all reachable and named scenes from dSS
 
 ### v2.8.0 (2026-03-17)
 - **Cooling mode detection via event** — uses `heating_system_mode` stateChange event (active=heating, inactive=cooling) as the primary cooling detection method
