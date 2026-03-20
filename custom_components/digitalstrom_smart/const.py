@@ -9,7 +9,7 @@ MANUFACTURER = "Digital Strom"
 INTEGRATION_AUTHOR = "Woon IoT BV"
 INTEGRATION_AUTHOR_ID = "MN-HJD-2026"
 INTEGRATION_URL = "https://github.com/wooniot/ha-digitalstrom-smart"
-INTEGRATION_VERSION = "2.8.4"
+INTEGRATION_VERSION = "2.8.5"
 
 # Application name shown in dSS Configurator under registered applications
 DSS_APP_NAME = "WoonIoT HA Connect"
@@ -124,6 +124,45 @@ SCENE_COVER_STOP = 15   # Stop
 SCENE_COVER_SUN_PROTECT = 11  # Sun protection position
 SCENE_COVER_WIND_PROTECT = 71  # Wind protection (fully open)
 
+# --- dS Area Scene Numbers ---
+# Area 1: scenes 6-9
+SCENE_AREA1_OFF = 6
+SCENE_AREA1_1 = 7
+SCENE_AREA1_2 = 8
+SCENE_AREA1_3 = 9
+
+# Area 2: scenes 10-14
+SCENE_AREA2_OFF = 10
+SCENE_AREA2_1 = 11
+SCENE_AREA2_2 = 12
+SCENE_AREA2_3 = 13
+SCENE_AREA2_4 = 14
+
+# Area 3: scenes 20-24
+SCENE_AREA3_OFF = 20
+SCENE_AREA3_1 = 21
+SCENE_AREA3_2 = 22
+SCENE_AREA3_3 = 23
+SCENE_AREA3_4 = 24
+
+# Area 4: scenes 30-34
+SCENE_AREA4_OFF = 30
+SCENE_AREA4_1 = 31
+SCENE_AREA4_2 = 32
+SCENE_AREA4_3 = 33
+SCENE_AREA4_4 = 34
+
+# All zone-level scene numbers that can be user-configured
+# Excludes apartment-wide scenes (65+) which are handled separately
+ALL_ZONE_SCENES = [
+    SCENE_OFF, SCENE_1, SCENE_2, SCENE_3, SCENE_4,     # Preset 0-4
+    SCENE_AREA1_OFF, SCENE_AREA1_1, SCENE_AREA1_2, SCENE_AREA1_3,  # Area 1
+    SCENE_AREA2_OFF, SCENE_AREA2_1, SCENE_AREA2_2, SCENE_AREA2_3, SCENE_AREA2_4,  # Area 2
+    SCENE_AREA3_OFF, SCENE_AREA3_1, SCENE_AREA3_2, SCENE_AREA3_3, SCENE_AREA3_4,  # Area 3
+    SCENE_AREA4_OFF, SCENE_AREA4_1, SCENE_AREA4_2, SCENE_AREA4_3, SCENE_AREA4_4,  # Area 4
+    40, 41, 42, 43, 44,  # Preset 10-14 (extended presets)
+]
+
 # Named scene defaults per group
 NAMED_SCENES = {
     SCENE_OFF: "Off",
@@ -131,6 +170,34 @@ NAMED_SCENES = {
     SCENE_2: "Scene 2",
     SCENE_3: "Scene 3",
     SCENE_4: "Scene 4",
+}
+
+# Default names for area scenes (used when dSS has no custom name)
+AREA_SCENE_NAMES = {
+    SCENE_AREA1_OFF: "Area 1 Off",
+    SCENE_AREA1_1: "Area 1 Scene 1",
+    SCENE_AREA1_2: "Area 1 Scene 2",
+    SCENE_AREA1_3: "Area 1 Scene 3",
+    SCENE_AREA2_OFF: "Area 2 Off",
+    SCENE_AREA2_1: "Area 2 Scene 1",
+    SCENE_AREA2_2: "Area 2 Scene 2",
+    SCENE_AREA2_3: "Area 2 Scene 3",
+    SCENE_AREA2_4: "Area 2 Scene 4",
+    SCENE_AREA3_OFF: "Area 3 Off",
+    SCENE_AREA3_1: "Area 3 Scene 1",
+    SCENE_AREA3_2: "Area 3 Scene 2",
+    SCENE_AREA3_3: "Area 3 Scene 3",
+    SCENE_AREA3_4: "Area 3 Scene 4",
+    SCENE_AREA4_OFF: "Area 4 Off",
+    SCENE_AREA4_1: "Area 4 Scene 1",
+    SCENE_AREA4_2: "Area 4 Scene 2",
+    SCENE_AREA4_3: "Area 4 Scene 3",
+    SCENE_AREA4_4: "Area 4 Scene 4",
+    40: "Preset 10",
+    41: "Preset 11",
+    42: "Preset 12",
+    43: "Preset 13",
+    44: "Preset 14",
 }
 
 NAMED_SCENES_SHADE = {

@@ -22,14 +22,15 @@ from .const import (
     NAMED_SCENES,
     NAMED_SCENES_SHADE,
     GROUP_HEATING_SCENES,
+    AREA_SCENE_NAMES,
     CONF_ENABLED_ZONES,
 )
 from .coordinator import DigitalStromCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-# Which groups get scene entities
-SCENE_GROUPS = {
+# Which groups get scene entities — default scenes per group
+DEFAULT_SCENE_GROUPS = {
     GROUP_LIGHT: NAMED_SCENES,
     GROUP_SHADE: NAMED_SCENES_SHADE,
     GROUP_HEATING: GROUP_HEATING_SCENES,
@@ -41,7 +42,13 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Digital Strom scenes."""
+    """Set up Digital Strom scenes.
+
+    Creates scene entities from three sources (in priority order):
+    1. getReachableScenes API (if available) — all reachable scenes
+    2. User-defined scene names from dSS (sceneGetName) — named scenes
+    3. Default preset scenes (0, 5, 17, 18, 19) — always created
+    """
     data = hass.data[DOMAIN][entry.entry_id]
     coordinator: DigitalStromCoordinator = data["coordinator"]
     enabled_zones = entry.data.get(CONF_ENABLED_ZONES, [])
@@ -50,10 +57,23 @@ async def async_setup_entry(
     for zone_id, zone_info in coordinator.zones.items():
         if enabled_zones and zone_id not in enabled_zones:
             continue
-        for group_id, default_scenes in SCENE_GROUPS.items():
+        for group_id, default_scenes in DEFAULT_SCENE_GROUPS.items():
             if group_id not in zone_info["groups"]:
                 continue
-            for scene_nr in default_scenes:
+
+            # Collect scene numbers to create entities for
+            scene_numbers = set(default_scenes.keys())
+
+            # Add reachable scenes from dSS (includes area scenes, UDAs)
+            reachable = coordinator.reachable_scenes.get((zone_id, group_id), [])
+            scene_numbers.update(reachable)
+
+            # Add any scenes that have user-defined names in dSS
+            for key, name in coordinator.scene_names.items():
+                if key[0] == zone_id and key[1] == group_id and name:
+                    scene_numbers.add(key[2])
+
+            for scene_nr in sorted(scene_numbers):
                 display_name = coordinator.get_scene_display_name(
                     zone_id, group_id, scene_nr
                 )

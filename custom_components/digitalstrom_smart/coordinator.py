@@ -33,9 +33,11 @@ from .const import (
     SCENE_2,
     SCENE_3,
     SCENE_4,
+    ALL_ZONE_SCENES,
     NAMED_SCENES,
     NAMED_SCENES_SHADE,
     GROUP_HEATING_SCENES,
+    AREA_SCENE_NAMES,
     SENSOR_TEMPERATURE,
     SENSOR_HUMIDITY,
     SENSOR_BRIGHTNESS,
@@ -244,8 +246,8 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                         "getReachableScenes failed for zone %d group %d: %s, trying fallback",
                         zone_id, group, err,
                     )
-                    # Fallback: try individual sceneGetName calls
-                    for scene_nr in [SCENE_OFF, SCENE_1, SCENE_2, SCENE_3, SCENE_4]:
+                    # Fallback: try individual sceneGetName calls for all zone scenes
+                    for scene_nr in ALL_ZONE_SCENES:
                         try:
                             name = await self.api.get_scene_name(zone_id, group, scene_nr)
                             if name:
@@ -443,10 +445,10 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         if custom:
             return custom
         if group == GROUP_SHADE:
-            return NAMED_SCENES_SHADE.get(scene_nr, f"Scene {scene_nr}")
+            return NAMED_SCENES_SHADE.get(scene_nr, AREA_SCENE_NAMES.get(scene_nr, f"Scene {scene_nr}"))
         if group == GROUP_HEATING:
-            return GROUP_HEATING_SCENES.get(scene_nr, f"Scene {scene_nr}")
-        return NAMED_SCENES.get(scene_nr, f"Scene {scene_nr}")
+            return GROUP_HEATING_SCENES.get(scene_nr, AREA_SCENE_NAMES.get(scene_nr, f"Scene {scene_nr}"))
+        return NAMED_SCENES.get(scene_nr, AREA_SCENE_NAMES.get(scene_nr, f"Scene {scene_nr}"))
 
     # =====================================================================
     # State accessors

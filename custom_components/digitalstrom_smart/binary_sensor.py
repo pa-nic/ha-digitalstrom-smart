@@ -46,6 +46,18 @@ BINARY_INPUT_DEVICE_CLASS = {
 # Default device class if inputType is unknown
 DEFAULT_BINARY_CLASS = BinarySensorDeviceClass.OPENING
 
+# Input types where dSS "active" (state=1) means contact CLOSED (door/window shut).
+# For these types, HA is_on must be inverted: is_on=True means OPEN (no contact).
+# Non-contact types (motion, presence, smoke) are NOT inverted.
+CONTACT_INPUT_TYPES = {
+    0,   # Generic / default (UMR contacts, generic inputs)
+    13,  # Window contact
+    14,  # Door contact
+    15,  # Window handle
+    16,  # Generic input (UMR contacts, etc.)
+    21,  # Room temperature/humidity sensor active (Raumfühler)
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -133,13 +145,20 @@ class DigitalStromJokerBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
         # Determine device class from binaryInputs
         binary_inputs = device.get("binary_inputs", [])
+        self._input_type = 0
         if binary_inputs:
-            input_type = binary_inputs[0].get("inputType", 0)
+            self._input_type = binary_inputs[0].get("inputType", 0)
             self._attr_device_class = BINARY_INPUT_DEVICE_CLASS.get(
-                input_type, DEFAULT_BINARY_CLASS
+                self._input_type, DEFAULT_BINARY_CLASS
             )
         else:
             self._attr_device_class = DEFAULT_BINARY_CLASS
+
+        # Contact-type sensors need inverted logic:
+        # dSS: state 1 = active = contact closed (door/window shut)
+        # HA:  is_on = True = detected = door/window OPEN
+        # So for contacts: invert. For motion/presence: don't invert.
+        self._invert = self._input_type in CONTACT_INPUT_TYPES
 
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_zone_{zone_id}")},
@@ -150,7 +169,10 @@ class DigitalStromJokerBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        return self.coordinator.get_device_on_state(self._dsuid)
+        state = self.coordinator.get_device_on_state(self._dsuid)
+        if state is None:
+            return None
+        return not state if self._invert else state
 
     @callback
     def _handle_coordinator_update(self) -> None:
