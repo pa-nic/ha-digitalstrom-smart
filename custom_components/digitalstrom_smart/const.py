@@ -9,7 +9,7 @@ MANUFACTURER = "Digital Strom"
 INTEGRATION_AUTHOR = "Woon IoT BV"
 INTEGRATION_AUTHOR_ID = "MN-HJD-2026"
 INTEGRATION_URL = "https://github.com/wooniot/ha-digitalstrom-smart"
-INTEGRATION_VERSION = "2.8.2"
+INTEGRATION_VERSION = "2.8.3"
 
 # Application name shown in dSS Configurator under registered applications
 DSS_APP_NAME = "WoonIoT HA Connect"
@@ -200,6 +200,7 @@ CLIMATE_HOLIDAY = 5
 POLL_INTERVAL = 30               # 30s for all sensor data
 POLL_INTERVAL_ENERGY = 30        # kept for backwards compat
 POLL_INTERVAL_TEMPERATURE = 300  # 5 min for temp control values
+POLL_INTERVAL_BINARY = 5         # 5s for binary input states (contacts, doors)
 
 # --- Event listener ---
 EVENT_POLL_TIMEOUT = 60  # Long-poll timeout for event/get

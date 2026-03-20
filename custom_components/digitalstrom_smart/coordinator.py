@@ -19,6 +19,7 @@ import aiohttp
 from .const import (
     DOMAIN,
     POLL_INTERVAL_ENERGY,
+    POLL_INTERVAL_BINARY,
     RECONNECT_INITIAL,
     RECONNECT_MAX,
     GROUP_LIGHT,
@@ -85,6 +86,7 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         self._structure = structure
         self.dss_id = dss_id
         self._event_task: asyncio.Task | None = None
+        self._binary_poll_task: asyncio.Task | None = None
         self._reconnect_delay = RECONNECT_INITIAL
 
         # State tracking: {(zone_id, group): {"scene": int, "value": int, "is_on": bool}}
@@ -201,9 +203,16 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                 self.devices[dsuid] = dev_info
                 self.zones[zone_id]["devices"].append(dsuid)
 
-                # Initialize device on/off state from structure (actuators + sensors)
+                # Initialize device on/off state from structure
                 if GROUP_JOKER in dev_info["groups"]:
-                    self._device_on_states[dsuid] = dev_info["is_on"]
+                    # For binary input devices: use binaryInputs[0].state from structure
+                    # dSS state values: 1=active, 2=inactive (NOT 0/1!)
+                    bi = dev_info.get("binary_inputs", [])
+                    if bi and "state" in bi[0]:
+                        bi_state = bi[0]["state"]
+                        self._device_on_states[dsuid] = (bi_state == 1)
+                    else:
+                        self._device_on_states[dsuid] = dev_info.get("is_on", False) or False
 
     # =====================================================================
     # Scene discovery
@@ -273,11 +282,11 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         await self.poll_binary_input_states()
 
     async def poll_binary_input_states(self) -> None:
-        """Poll binary input states from dSS property tree.
+        """Poll binary input states via dSS getState API.
 
         Contact sensors (EnOcean window contacts, SW-UMR200, door sensors)
-        report their status via the dSS property tree. This method reads
-        the current state for all devices that have binaryInputs.
+        report their status. The dSS getState endpoint returns isOn for
+        ALL device types including pure binary input sensors.
         Called at startup and periodically during polling.
         """
         for dsuid, dev in self.devices.items():
@@ -286,25 +295,16 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
             if GROUP_JOKER not in dev.get("groups", []):
                 continue
             try:
-                states = await self.api.get_binary_input_states(dsuid)
-                if states:
-                    # Use the first binary input state
-                    for state_entry in states:
-                        state_val = state_entry.get("state", "")
-                        if isinstance(state_val, str):
-                            is_active = state_val.lower() in ("active", "true", "1", "open")
-                        elif isinstance(state_val, (int, float)):
-                            is_active = state_val > 0
-                        else:
-                            continue
-                        old_state = self._device_on_states.get(dsuid)
-                        self._device_on_states[dsuid] = is_active
-                        if old_state != is_active:
-                            _LOGGER.debug(
-                                "Binary input poll: %s (%s) state=%s",
-                                dsuid[:8], dev.get("name", ""), is_active,
-                            )
-                        break  # use first binary input
+                is_active = await self.api.get_device_binary_input_state(dsuid)
+                if is_active is not None:
+                    old_state = self._device_on_states.get(dsuid)
+                    self._device_on_states[dsuid] = is_active
+                    if old_state != is_active:
+                        _LOGGER.debug(
+                            "Binary input poll: %s (%s) state=%s→%s",
+                            dsuid[:8], dev.get("name", ""),
+                            old_state, is_active,
+                        )
             except Exception as err:
                 _LOGGER.debug(
                     "Binary input poll failed for %s: %s", dsuid[:8], err,
@@ -649,7 +649,7 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
     # =====================================================================
 
     async def start_event_listener(self) -> None:
-        """Subscribe to events and start long-poll loop."""
+        """Subscribe to events and start long-poll loop + binary input polling."""
         try:
             await self.api.subscribe_events()
             self._reconnect_delay = RECONNECT_INITIAL
@@ -660,6 +660,28 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         self._event_task = self.hass.async_create_background_task(
             self._event_loop(), f"{DOMAIN}_event_loop"
         )
+
+        # Start fast binary input polling (contacts, doors, windows)
+        self._binary_poll_task = self.hass.async_create_background_task(
+            self._binary_poll_loop(), f"{DOMAIN}_binary_poll"
+        )
+
+    async def _binary_poll_loop(self) -> None:
+        """Fast polling loop for binary input devices (every 5s).
+
+        Contacts, door sensors, and window sensors need faster polling
+        than the main 30s update cycle for responsive state tracking.
+        """
+        while True:
+            try:
+                await asyncio.sleep(POLL_INTERVAL_BINARY)
+                await self.poll_binary_input_states()
+                self.async_update_listeners()
+            except asyncio.CancelledError:
+                return
+            except Exception as err:
+                _LOGGER.debug("Binary poll loop error: %s", err)
+                await asyncio.sleep(POLL_INTERVAL_BINARY)
 
     async def _event_loop(self) -> None:
         """Continuously long-poll for events."""
@@ -862,8 +884,7 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
             # Device sensors: Ulux, thermostats, etc. (FREE)
             await self.fetch_device_sensors()
 
-            # Binary input states: contacts, smoke, door sensors (FREE)
-            await self.poll_binary_input_states()
+            # Binary input states: handled by separate fast poll loop (_binary_poll_loop)
 
             # Pro features: extra data
             if self.pro_enabled:
@@ -930,10 +951,11 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
 
     async def shutdown(self) -> None:
         """Clean shutdown."""
-        if self._event_task and not self._event_task.done():
-            self._event_task.cancel()
-            try:
-                await self._event_task
-            except asyncio.CancelledError:
-                pass
+        for task in (self._event_task, self._binary_poll_task):
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
         await self.api.close()
