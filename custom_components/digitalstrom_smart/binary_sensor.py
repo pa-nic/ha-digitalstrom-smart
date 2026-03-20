@@ -38,7 +38,7 @@ BINARY_INPUT_DEVICE_CLASS = {
     13: BinarySensorDeviceClass.WINDOW,       # Window contact
     14: BinarySensorDeviceClass.DOOR,         # Door contact
     15: BinarySensorDeviceClass.WINDOW,       # Window handle
-    16: BinarySensorDeviceClass.GAS,          # Gas detected
+    16: BinarySensorDeviceClass.OPENING,      # Generic input (UMR contacts, etc.)
     18: BinarySensorDeviceClass.TAMPER,       # Malfunction / tamper
     19: BinarySensorDeviceClass.SAFETY,       # Safety
 }
@@ -67,6 +67,13 @@ async def async_setup_entry(
             continue
 
         for dev in coordinator.get_joker_sensors_in_zone(zone_id):
+            entities.append(
+                DigitalStromJokerBinarySensor(coordinator, zone_id, zone_info, dev)
+            )
+
+        # Also detect Joker devices with binaryInputs that have outputMode > 0
+        # (e.g. EnOcean window contacts, SW-UMR200 configured as actuator+sensor)
+        for dev in coordinator.get_joker_binary_input_devices_in_zone(zone_id):
             entities.append(
                 DigitalStromJokerBinarySensor(coordinator, zone_id, zone_info, dev)
             )

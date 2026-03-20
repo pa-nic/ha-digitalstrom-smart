@@ -591,6 +591,17 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         return [d for d in self.get_joker_devices_in_zone(zone_id)
                 if d.get("output_mode", 0) == 0 and d.get("binary_inputs")]
 
+    def get_joker_binary_input_devices_in_zone(self, zone_id: int) -> list[dict]:
+        """Get Joker devices with binaryInputs AND outputMode > 0.
+
+        Some devices (EnOcean window contacts, SW-UMR200) have outputMode > 0
+        but also have binaryInputs for contact/state sensing. These should
+        appear as binary sensors alongside their switch entity.
+        Excludes devices already covered by get_joker_sensors_in_zone.
+        """
+        return [d for d in self.get_joker_devices_in_zone(zone_id)
+                if d.get("output_mode", 0) > 0 and d.get("binary_inputs")]
+
     # =====================================================================
     # Event listener
     # =====================================================================
@@ -761,15 +772,29 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                         state_value, self._heating_system_cooling,
                     )
                     self.async_update_listeners()
-            elif dsuid and dsuid in self.devices:
+            elif dsuid:
                 # Binary input state changes (contacts, smoke, etc.)
-                is_active = state_value in ("active", "true", "1", "open")
-                self.set_device_on_state(dsuid, is_active)
-                _LOGGER.debug(
-                    "State change: dsuid=%s state=%s value=%s",
-                    dsuid[:8], state_name, state_value,
-                )
-                self.async_update_listeners()
+                # Match dsuid case-insensitively and handle truncated dsuid from some dSS versions
+                matched_dsuid = dsuid if dsuid in self.devices else None
+                if not matched_dsuid:
+                    # Try prefix match (some events use shortened dsuid)
+                    for known_dsuid in self.devices:
+                        if known_dsuid.startswith(dsuid) or dsuid.startswith(known_dsuid):
+                            matched_dsuid = known_dsuid
+                            break
+                if matched_dsuid:
+                    is_active = state_value.lower() in ("active", "true", "1", "open")
+                    self.set_device_on_state(matched_dsuid, is_active)
+                    _LOGGER.debug(
+                        "State change: dsuid=%s matched=%s state=%s value=%s",
+                        dsuid[:8], matched_dsuid[:8], state_name, state_value,
+                    )
+                    self.async_update_listeners()
+                else:
+                    _LOGGER.debug(
+                        "State change: unmatched dsuid=%s state=%s value=%s",
+                        dsuid[:8], state_name, state_value,
+                    )
 
     # =====================================================================
     # Polling (DataUpdateCoordinator)
