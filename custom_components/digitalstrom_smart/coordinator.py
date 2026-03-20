@@ -299,21 +299,35 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Binary input poll failed: %s", err)
             return
 
+        # Log poll results for debugging (every poll cycle at debug level)
+        binary_devices = {d: dev for d, dev in self.devices.items() if dev.get("binary_inputs")}
+        if binary_devices:
+            _LOGGER.debug(
+                "Binary poll: %d devices with binary inputs, %d states returned from API",
+                len(binary_devices), len(all_states),
+            )
+
         for dsuid, dev in self.devices.items():
             if not dev.get("binary_inputs"):
                 continue
             bi_state = all_states.get(dsuid)
             if bi_state is None:
+                _LOGGER.debug(
+                    "Binary poll: no state for %s (%s) — dsuid not in API response. "
+                    "Known API dsuids: %s",
+                    dsuid[:12], dev.get("name", ""),
+                    list(all_states.keys())[:5] if not all_states.get(dsuid) else "matched",
+                )
                 continue
             # dSS binary input: 1=active, 2=inactive
             is_active = (bi_state == 1)
             old_state = self._device_on_states.get(dsuid)
             self._device_on_states[dsuid] = is_active
             if old_state != is_active:
-                _LOGGER.debug(
-                    "Binary input poll: %s (%s) state=%d→%s",
-                    dsuid[:8], dev.get("name", ""),
-                    bi_state, is_active,
+                _LOGGER.info(
+                    "Binary input CHANGED: %s (%s) state=%d active=%s (was %s)",
+                    dsuid[:12], dev.get("name", ""),
+                    bi_state, is_active, old_state,
                 )
 
     async def fetch_climate_data(self) -> None:
@@ -678,15 +692,21 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         Contacts, door sensors, and window sensors need faster polling
         than the main 30s update cycle for responsive state tracking.
         """
+        _LOGGER.info("Binary poll loop STARTED (interval=%ds)", POLL_INTERVAL_BINARY)
+        poll_count = 0
         while True:
             try:
                 await asyncio.sleep(POLL_INTERVAL_BINARY)
                 await self.poll_binary_input_states()
                 self.async_update_listeners()
+                poll_count += 1
+                if poll_count % 60 == 0:  # Log every 5 minutes
+                    _LOGGER.info("Binary poll loop alive: %d polls completed", poll_count)
             except asyncio.CancelledError:
+                _LOGGER.info("Binary poll loop STOPPED")
                 return
             except Exception as err:
-                _LOGGER.debug("Binary poll loop error: %s", err)
+                _LOGGER.warning("Binary poll loop error: %s", err)
                 await asyncio.sleep(POLL_INTERVAL_BINARY)
 
     async def _event_loop(self) -> None:
@@ -845,6 +865,10 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
             elif dsuid:
                 # Binary input state changes (contacts, smoke, etc.)
                 # Match dsuid case-insensitively and handle truncated dsuid from some dSS versions
+                _LOGGER.info(
+                    "stateChange event for device: dsuid=%s statename=%s state=%s",
+                    dsuid[:16], state_name, state_value,
+                )
                 matched_dsuid = dsuid if dsuid in self.devices else None
                 if not matched_dsuid:
                     # Try prefix match (some events use shortened dsuid)
@@ -855,15 +879,17 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                 if matched_dsuid:
                     is_active = state_value.lower() in ("active", "true", "1", "open")
                     self.set_device_on_state(matched_dsuid, is_active)
-                    _LOGGER.debug(
-                        "State change: dsuid=%s matched=%s state=%s value=%s",
+                    _LOGGER.info(
+                        "State change MATCHED: dsuid=%s matched=%s state=%s value=%s",
                         dsuid[:8], matched_dsuid[:8], state_name, state_value,
                     )
                     self.async_update_listeners()
                 else:
-                    _LOGGER.debug(
-                        "State change: unmatched dsuid=%s state=%s value=%s",
-                        dsuid[:8], state_name, state_value,
+                    _LOGGER.warning(
+                        "State change UNMATCHED: dsuid=%s (known devices: %s) state=%s value=%s",
+                        dsuid[:16],
+                        [d[:12] for d in self.devices.keys()][:10],
+                        state_name, state_value,
                     )
 
     # =====================================================================
