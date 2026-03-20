@@ -501,24 +501,22 @@ class DigitalStromApi:
         )
         return result.get("isOn", False)
 
-    async def get_device_binary_input_state(self, dsuid: str) -> bool | None:
-        """Get binary input state for a device via getState API.
+    async def get_all_binary_input_states(self) -> dict[str, int]:
+        """Get binary input states for ALL devices via apartment/getDevices.
 
-        The dSS getState endpoint returns isOn=true/false for ALL device types,
-        including binary input sensors (contacts, motion, smoke).
-        For binary input devices: isOn=true means input is active (open/detected).
-
-        This is the most reliable method — property tree paths vary by firmware
-        but getState works consistently across all dSS versions.
+        Returns dict of {dsuid: state} where state is 1 (active) or 2 (inactive).
+        This is the only reliable API for binary input states — getState returns
+        isOn which reflects output state (always True for outputMode=0 devices),
+        and property tree paths don't exist for binary inputs.
         """
-        try:
-            result = await self._request(
-                "/json/device/getState",
-                {"dsuid": dsuid},
-            )
-            return result.get("isOn")
-        except DigitalStromApiError:
-            return None
+        result = await self._request("/json/apartment/getDevices")
+        states = {}
+        for dev in result if isinstance(result, list) else []:
+            dsuid = dev.get("dSUID", "")
+            bi = dev.get("binaryInputs", [])
+            if dsuid and bi and "state" in bi[0]:
+                states[dsuid] = bi[0]["state"]
+        return states
 
     async def get_device_output_value(self, dsuid: str, offset: int = 0) -> int:
         """Get device output value at given offset."""

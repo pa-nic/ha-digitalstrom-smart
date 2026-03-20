@@ -282,32 +282,34 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         await self.poll_binary_input_states()
 
     async def poll_binary_input_states(self) -> None:
-        """Poll binary input states via dSS getState API.
+        """Poll binary input states via apartment/getDevices API.
 
-        Contact sensors (EnOcean window contacts, SW-UMR200, door sensors)
-        report their status. The dSS getState endpoint returns isOn for
-        ALL device types including pure binary input sensors.
-        Called at startup and periodically during polling.
+        Uses a single API call to fetch all device states including
+        binaryInputs[0].state (1=active, 2=inactive). This is the only
+        reliable method — getState/isOn reflects output state (always True
+        for outputMode=0 sensors), and property tree paths don't exist.
         """
+        try:
+            all_states = await self.api.get_all_binary_input_states()
+        except Exception as err:
+            _LOGGER.debug("Binary input poll failed: %s", err)
+            return
+
         for dsuid, dev in self.devices.items():
             if not dev.get("binary_inputs"):
                 continue
-            if GROUP_JOKER not in dev.get("groups", []):
+            bi_state = all_states.get(dsuid)
+            if bi_state is None:
                 continue
-            try:
-                is_active = await self.api.get_device_binary_input_state(dsuid)
-                if is_active is not None:
-                    old_state = self._device_on_states.get(dsuid)
-                    self._device_on_states[dsuid] = is_active
-                    if old_state != is_active:
-                        _LOGGER.debug(
-                            "Binary input poll: %s (%s) state=%s→%s",
-                            dsuid[:8], dev.get("name", ""),
-                            old_state, is_active,
-                        )
-            except Exception as err:
+            # dSS binary input: 1=active, 2=inactive
+            is_active = (bi_state == 1)
+            old_state = self._device_on_states.get(dsuid)
+            self._device_on_states[dsuid] = is_active
+            if old_state != is_active:
                 _LOGGER.debug(
-                    "Binary input poll failed for %s: %s", dsuid[:8], err,
+                    "Binary input poll: %s (%s) state=%d→%s",
+                    dsuid[:8], dev.get("name", ""),
+                    bi_state, is_active,
                 )
 
     async def fetch_climate_data(self) -> None:
