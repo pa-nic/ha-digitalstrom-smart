@@ -250,6 +250,7 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
         """Fetch initial scene states for all zones via getLastCalledScene.
 
         Only fetch for groups that have actual devices (reduces bus load).
+        Also polls binary input states for contact/sensor devices.
         """
         for zone_id, zone_info in self.zones.items():
             if not zone_info["devices"]:
@@ -267,6 +268,47 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                         "Initial state fetch failed zone %d group %d: %s",
                         zone_id, group, err,
                     )
+
+        # Poll binary input states for all Joker sensor devices
+        await self.poll_binary_input_states()
+
+    async def poll_binary_input_states(self) -> None:
+        """Poll binary input states from dSS property tree.
+
+        Contact sensors (EnOcean window contacts, SW-UMR200, door sensors)
+        report their status via the dSS property tree. This method reads
+        the current state for all devices that have binaryInputs.
+        Called at startup and periodically during polling.
+        """
+        for dsuid, dev in self.devices.items():
+            if not dev.get("binary_inputs"):
+                continue
+            if GROUP_JOKER not in dev.get("groups", []):
+                continue
+            try:
+                states = await self.api.get_binary_input_states(dsuid)
+                if states:
+                    # Use the first binary input state
+                    for state_entry in states:
+                        state_val = state_entry.get("state", "")
+                        if isinstance(state_val, str):
+                            is_active = state_val.lower() in ("active", "true", "1", "open")
+                        elif isinstance(state_val, (int, float)):
+                            is_active = state_val > 0
+                        else:
+                            continue
+                        old_state = self._device_on_states.get(dsuid)
+                        self._device_on_states[dsuid] = is_active
+                        if old_state != is_active:
+                            _LOGGER.debug(
+                                "Binary input poll: %s (%s) state=%s",
+                                dsuid[:8], dev.get("name", ""), is_active,
+                            )
+                        break  # use first binary input
+            except Exception as err:
+                _LOGGER.debug(
+                    "Binary input poll failed for %s: %s", dsuid[:8], err,
+                )
 
     async def fetch_climate_data(self) -> None:
         """Fetch climate control status and config for zones. PRO.
@@ -819,6 +861,9 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
 
             # Device sensors: Ulux, thermostats, etc. (FREE)
             await self.fetch_device_sensors()
+
+            # Binary input states: contacts, smoke, door sensors (FREE)
+            await self.poll_binary_input_states()
 
             # Pro features: extra data
             if self.pro_enabled:

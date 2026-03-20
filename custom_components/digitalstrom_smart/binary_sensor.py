@@ -67,6 +67,12 @@ async def async_setup_entry(
             continue
 
         for dev in coordinator.get_joker_sensors_in_zone(zone_id):
+            _LOGGER.info(
+                "Binary sensor (pure sensor): %s (%s) zone=%s inputType=%s",
+                dev["dsuid"][:8], dev.get("name", ""),
+                zone_info["name"],
+                dev.get("binary_inputs", [{}])[0].get("inputType", "?") if dev.get("binary_inputs") else "none",
+            )
             entities.append(
                 DigitalStromJokerBinarySensor(coordinator, zone_id, zone_info, dev)
             )
@@ -74,6 +80,12 @@ async def async_setup_entry(
         # Also detect Joker devices with binaryInputs that have outputMode > 0
         # (e.g. EnOcean window contacts, SW-UMR200 configured as actuator+sensor)
         for dev in coordinator.get_joker_binary_input_devices_in_zone(zone_id):
+            _LOGGER.info(
+                "Binary sensor (actuator+sensor): %s (%s) zone=%s outputMode=%s inputType=%s",
+                dev["dsuid"][:8], dev.get("name", ""),
+                zone_info["name"], dev.get("output_mode", 0),
+                dev.get("binary_inputs", [{}])[0].get("inputType", "?") if dev.get("binary_inputs") else "none",
+            )
             entities.append(
                 DigitalStromJokerBinarySensor(coordinator, zone_id, zone_info, dev)
             )

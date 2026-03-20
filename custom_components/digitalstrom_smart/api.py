@@ -501,6 +501,60 @@ class DigitalStromApi:
         )
         return result.get("isOn", False)
 
+    async def get_binary_input_states(self, dsuid: str) -> list[dict]:
+        """Get binary input states for a device.
+
+        Queries the dSS property tree for the actual state of each binaryInput.
+        Returns list of dicts with 'state' key (value: 'active'/'inactive' or int).
+        Used for contact sensors (EnOcean, SW-UMR200, etc.) that report status.
+
+        Tries multiple property tree paths as layout varies by dSS firmware:
+        1. /apartment/devices/<dsuid>/status/inputs/*(state)
+        2. /apartment/devices/<dsuid>/binaryInputs/*(state)
+        3. /json/property/getString on individual paths
+        """
+        # Strategy 1: query2 on status/inputs (dSS 1.19+)
+        try:
+            result = await self._request(
+                "/json/property/query2",
+                {"query": f"/apartment/devices/{dsuid}/status/inputs/*(state)"},
+            )
+            if isinstance(result, list) and result:
+                return result
+            items = result.get("inputs", result.get("result", []))
+            if items:
+                return items
+        except DigitalStromApiError:
+            pass
+
+        # Strategy 2: query2 on binaryInputs (alternative layout)
+        try:
+            result = await self._request(
+                "/json/property/query2",
+                {"query": f"/apartment/devices/{dsuid}/binaryInputs/*(state)"},
+            )
+            if isinstance(result, list) and result:
+                return result
+            items = result.get("binaryInputs", [])
+            if items:
+                return items
+        except DigitalStromApiError:
+            pass
+
+        # Strategy 3: direct property getString for first binary input
+        try:
+            result = await self._request(
+                "/json/property/getString",
+                {"path": f"/apartment/devices/{dsuid}/binaryInputs/0/state/value"},
+            )
+            val = result.get("value", "")
+            if val:
+                return [{"state": val}]
+        except DigitalStromApiError:
+            pass
+
+        return []
+
     async def get_device_output_value(self, dsuid: str, offset: int = 0) -> int:
         """Get device output value at given offset."""
         result = await self._request(
