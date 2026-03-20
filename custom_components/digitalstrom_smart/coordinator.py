@@ -246,8 +246,10 @@ class DigitalStromCoordinator(DataUpdateCoordinator):
                         "getReachableScenes failed for zone %d group %d: %s, trying fallback",
                         zone_id, group, err,
                     )
-                    # Fallback: try individual sceneGetName calls for all zone scenes
-                    for scene_nr in ALL_ZONE_SCENES:
+                    # Fallback: try individual sceneGetName calls
+                    # Free: only default presets. Pro: all zone scenes.
+                    probe_scenes = ALL_ZONE_SCENES if self.pro_enabled else [SCENE_OFF, SCENE_1, SCENE_2, SCENE_3, SCENE_4]
+                    for scene_nr in probe_scenes:
                         try:
                             name = await self.api.get_scene_name(zone_id, group, scene_nr)
                             if name:

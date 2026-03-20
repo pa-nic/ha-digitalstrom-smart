@@ -44,10 +44,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up Digital Strom scenes.
 
-    Creates scene entities from three sources (in priority order):
-    1. getReachableScenes API (if available) — all reachable scenes
-    2. User-defined scene names from dSS (sceneGetName) — named scenes
-    3. Default preset scenes (0, 5, 17, 18, 19) — always created
+    Free: Default preset scenes (0, 5, 17, 18, 19) per group.
+    Pro:  All reachable scenes + area scenes (6-9, 10-14, 20-24, 30-34, 40-44)
+          + user-defined scenes from dSS.
     """
     data = hass.data[DOMAIN][entry.entry_id]
     coordinator: DigitalStromCoordinator = data["coordinator"]
@@ -61,17 +60,17 @@ async def async_setup_entry(
             if group_id not in zone_info["groups"]:
                 continue
 
-            # Collect scene numbers to create entities for
+            # Free: only default preset scenes (0, 5, 17, 18, 19)
             scene_numbers = set(default_scenes.keys())
 
-            # Add reachable scenes from dSS (includes area scenes, UDAs)
-            reachable = coordinator.reachable_scenes.get((zone_id, group_id), [])
-            scene_numbers.update(reachable)
+            # Pro: add area scenes, reachable scenes, and user-defined scenes
+            if coordinator.pro_enabled:
+                reachable = coordinator.reachable_scenes.get((zone_id, group_id), [])
+                scene_numbers.update(reachable)
 
-            # Add any scenes that have user-defined names in dSS
-            for key, name in coordinator.scene_names.items():
-                if key[0] == zone_id and key[1] == group_id and name:
-                    scene_numbers.add(key[2])
+                for key, name in coordinator.scene_names.items():
+                    if key[0] == zone_id and key[1] == group_id and name:
+                        scene_numbers.add(key[2])
 
             for scene_nr in sorted(scene_numbers):
                 display_name = coordinator.get_scene_display_name(

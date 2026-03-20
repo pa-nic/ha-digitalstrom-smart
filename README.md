@@ -34,7 +34,7 @@ Unlike traditional per-device polling integrations, Digital Strom Smart uses the
 - **Zone-based covers** (blinds/shades) with position control and direction inversion
 - **Individual Joker switches** — each Joker actuator gets its own switch entity with the device name from dS Configurator
 - **Joker binary sensors** — contact sensors, smoke detectors, door contacts are auto-detected as binary sensors with the correct device class
-- **Scene activation** with imported dS scene names — including area scenes (6-9, 10-14, 20-24, 30-34, 40-44) and all user-defined scenes
+- **Scene activation** with imported dS scene names (the recommended way to control Digital Strom)
 - **Temperature sensors** per zone (including rooms without heating, using any available source: zone sensors, device sensors)
 - **Device sensors** — Ulux and similar devices expose CO2, brightness, temperature, and humidity as individual sensor entities
 - **Energy monitoring** (apartment-level power consumption)
@@ -51,6 +51,7 @@ Unlock advanced features with a Pro license key from [wooniot.nl/pro](https://wo
 - **Rain detection** — real-time rain sensor via dSS system-protection state events
 - **Device identification** — blink any device for identification
 - **Save scenes** — save current output values as a new scene
+- **Area scenes** — full scene range support (6-9, 10-14, 20-24, 30-34, 40-44) plus all user-defined scenes from dSS
 
 #### Pro license
 
