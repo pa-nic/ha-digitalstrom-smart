@@ -34,7 +34,7 @@ Unlike traditional per-device polling integrations, Digital Strom Smart uses the
 - **Zone-based covers** (blinds/shades) with position control and direction inversion
 - **Individual Joker switches** — each Joker actuator gets its own switch entity with the device name from dS Configurator
 - **Joker binary sensors** — contact sensors, smoke detectors, door contacts are auto-detected as binary sensors with the correct device class
-- **Scene activation** with imported dS scene names (the recommended way to control Digital Strom)
+- **Scene activation** with imported dS scene names — including area scenes (6-9, 10-14, 20-24, 30-34, 40-44) and all user-defined scenes
 - **Temperature sensors** per zone (including rooms without heating, using any available source: zone sensors, device sensors)
 - **Device sensors** — Ulux and similar devices expose CO2, brightness, temperature, and humidity as individual sensor entities
 - **Energy monitoring** (apartment-level power consumption)
@@ -159,6 +159,9 @@ Home Assistant
         │     ├── stateChange → Binary sensors (contacts, smoke, door)
         │     └── stateChange → Rain detection (apartment-level)
         │
+        ├── Binary Input Polling (every 5s)
+        │     └── apartment/getDevices → Contact/door/window state
+        │
         ├── Polling (every 30s)
         │     ├── getConsumption → Energy sensor
         │     ├── getTemperatureControlValues → Zone temperatures
@@ -182,6 +185,14 @@ Home Assistant
 - Climate control zones (heating and cooling)
 
 ## Changelog
+
+### v2.8.5 (2026-03-20)
+- **Binary sensor fix** — contact sensors (doors, windows, UMR, EnOcean) now report correct open/closed state
+- **Fast binary polling** — separate 5-second polling loop for contact/door/window sensors (was 30s)
+- **Correct API** — uses `apartment/getDevices` for binary input state (reliable across all dSS firmware versions)
+- **Polarity fix** — contact-type sensors correctly inverted (dSS "active"=closed, HA on=open). Motion/presence unchanged.
+- **Area scenes** — support for scenes 6-9, 10-14, 20-24, 30-34, 40-44
+- **Dynamic scene discovery** — automatically creates entities for all reachable and named scenes from dSS
 
 ### v2.8.0 (2026-03-17)
 - **Cooling mode detection via event** — uses `heating_system_mode` stateChange event (active=heating, inactive=cooling) as the primary cooling detection method
