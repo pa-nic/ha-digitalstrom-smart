@@ -178,7 +178,37 @@ Home Assistant
 - Außenwetterstationen (Temperatur, Feuchtigkeit, Helligkeit, Wind, Luftdruck, Regen)
 - Klimazonen (Heizung und Kühlung)
 
+## Übersetzungen
+
+Digital Strom Smart unterstützt mehrere Sprachen für alle Entitätsnamen, Konfigurationsbildschirme und Statuswerte:
+
+| Sprache | Status |
+|---------|--------|
+| English | Vollständig |
+| Nederlands (Niederländisch) | Vollständig |
+| Deutsch | Vollständig |
+
+Home Assistant verwendet automatisch die richtige Sprache basierend auf Ihrer Systemspracheinstellung. Möchten Sie eine Übersetzung hinzufügen? PRs willkommen — erstellen Sie einfach eine neue JSON-Datei in `custom_components/digitalstrom_smart/translations/`.
+
 ## Änderungsprotokoll
+
+### v2.9.0 (29.03.2026)
+- **Vollständige i18n** — alle Entitätsnamen jetzt über das native Home Assistant Übersetzungssystem übersetzbar
+- **Deutsche Übersetzung** — vollständige DE-Übersetzung für alle Entitäten, Konfigurationsflow und Optionen
+- **Niederländische Übersetzung** — vollständige NL-Übersetzung für alle Entitäten
+- Übersetzt: Sensoren, Lichter, Beschattung, Klima, Schalter, Anwesenheitsmodus (mit Statuswerten), Binärsensoren, Szenen (einschließlich Bereichsszenen)
+- **Breaking Change**: Anwesenheitsmodus-Optionen von Anzeigenamen (`"Present"`, `"Absent"`) zu internen Schlüsseln (`"present"`, `"absent"`) geändert. Automatisierungen mit `select.select_option` entsprechend aktualisieren.
+
+### v2.8.7 (24.03.2026)
+- **Binärsensor Debug-Logging** — verbessertes Diagnose-Logging für Joker-Binärsensoren
+
+### v2.8.6 (20.03.2026)
+- **Binärsensor-Fix** — Kontaktsensoren (Türen, Fenster, UMR, EnOcean) melden jetzt den korrekten Offen/Geschlossen-Status
+- **Schnelles Binär-Polling** — separater 5-Sekunden-Polling-Zyklus für Kontakt-/Tür-/Fenstersensoren (vorher 30s)
+- **Korrekte API** — verwendet `apartment/getDevices` für Binäreingang-Status (zuverlässig über alle dSS-Firmware-Versionen)
+- **Polaritäts-Fix** — Kontaktsensoren korrekt invertiert (dSS "aktiv"=geschlossen, HA an=offen). Bewegung/Anwesenheit unverändert.
+- **Bereichsszenen** (Pro) — Unterstützung für Szenen 6-9, 10-14, 20-24, 30-34, 40-44
+- **Dynamische Szenenerkennung** (Pro) — erstellt automatisch Entitäten für alle erreichbaren und benannten Szenen aus dem dSS
 
 ### v2.8.0 (17.03.2026)
 - **Kühlmodus-Erkennung via Event** — verwendet `heating_system_mode` stateChange-Event (active=Heizung, inactive=Kühlung) als primäre Erkennungsmethode

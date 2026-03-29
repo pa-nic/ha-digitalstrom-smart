@@ -185,7 +185,29 @@ Home Assistant
 - Rain detection via dSS system-protection state
 - Climate control zones (heating and cooling)
 
+## Translations
+
+Digital Strom Smart supports multiple languages for all entity names, configuration screens, and state values:
+
+| Language | Status |
+|----------|--------|
+| English | Complete |
+| Nederlands (Dutch) | Complete |
+| Deutsch (German) | Complete |
+
+Home Assistant automatically uses the correct language based on your system language setting. Want to add a translation? PRs welcome — just create a new JSON file in `custom_components/digitalstrom_smart/translations/`.
+
 ## Changelog
+
+### v2.9.0 (2026-03-29)
+- **Full i18n** — all entity names now translatable via Home Assistant's native translation system
+- **German translation** — complete DE translation for all entities, config flow, and options
+- **Dutch translation** — complete NL translation for all entities
+- Translated: sensors, lights, covers, climate, switches, presence mode (with state values), binary sensors, scenes (including area scenes)
+- **Breaking change**: Presence Mode select options changed from display names (`"Present"`, `"Absent"`) to internal keys (`"present"`, `"absent"`). Update automations using `select.select_option` accordingly.
+
+### v2.8.7 (2026-03-24)
+- **Binary sensor debug logging** — improved diagnostic logging for Joker binary sensors
 
 ### v2.8.6 (2026-03-20)
 - **Binary sensor fix** — contact sensors (doors, windows, UMR, EnOcean) now report correct open/closed state
