@@ -1,0 +1,43 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Digital Strom Verbindung",
+        "description": "Geben Sie die IP-Adresse Ihres dSS ein. Ihr dSS muss in Ihrem lokalen Netzwerk erreichbar sein (dSS20 oder neuer erforderlich).",
+        "data": {
+          "host": "IP-Adresse",
+          "port": "Port"
+        }
+      },
+      "approve_token": {
+        "title": "Anwendung Genehmigen",
+        "description": "Genehmigen Sie die WoonIoT-Verbindung in Ihrem Digital Strom Konfigurator:\n\n1. Öffnen Sie die dSS Admin-Oberfläche in Ihrem Browser\n2. Gehen Sie zu System > Zugriffsberechtigung\n3. Suchen Sie 'WoonIoT HA Connect' und setzen Sie das Häkchen\n\nToken: {token}\n\nKlicken Sie nach der Genehmigung auf Absenden."
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum dSS nicht möglich. Überprüfen Sie die IP-Adresse und ob der Server in Ihrem lokalen Netzwerk erreichbar ist.",
+      "token_not_approved": "Token noch nicht genehmigt. Genehmigen Sie die Verbindung in der dSS Admin-Oberfläche unter Zugriffsberechtigung."
+    },
+    "abort": {
+      "cannot_connect": "Verbindung zum dSS nach der Authentifizierung nicht möglich.",
+      "already_configured": "Dieser Digital Strom Server ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Digital Strom Optionen",
+        "description": "Konfigurieren Sie Ihre Digital Strom Integration.",
+        "data": {
+          "enabled_zones": "Aktivierte Zonen",
+          "invert_cover_position": "Abdeckungsrichtung umkehren",
+          "pro_license_key": "Pro-Lizenzschlüssel"
+        },
+        "data_description": {
+          "invert_cover_position": "Aktivieren Sie dies, wenn sich Ihre Jalousien/Rollläden in die falsche Richtung bewegen (Öffnen/Schließen vertauscht)",
+          "pro_license_key": "Schalten Sie Klimasteuerung, Energie-Dashboard, Außensensoren, Geräteidentifikation und mehr frei. Holen Sie sich Ihren Schlüssel auf wooniot.nl/pro"
+        }
+      }
+    }
+  }
+}
