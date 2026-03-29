@@ -9,7 +9,7 @@ MANUFACTURER = "Digital Strom"
 INTEGRATION_AUTHOR = "Woon IoT BV"
 INTEGRATION_AUTHOR_ID = "MN-HJD-2026"
 INTEGRATION_URL = "https://github.com/wooniot/ha-digitalstrom-smart"
-INTEGRATION_VERSION = "2.8.6"
+INTEGRATION_VERSION = "2.9.0"
 
 # Application name shown in dSS Configurator under registered applications
 DSS_APP_NAME = "WoonIoT HA Connect"
@@ -94,6 +94,16 @@ APARTMENT_PRESENCE_SCENES = {
     SCENE_DEEP_OFF: "Deep Off",
 }
 
+# Presence scene mapping: scene_nr -> translation key (for select entity)
+APARTMENT_PRESENCE_KEYS = {
+    SCENE_PRESENT: "present",
+    SCENE_ABSENT: "absent",
+    SCENE_SLEEPING: "sleeping",
+    SCENE_WAKEUP: "wakeup",
+    SCENE_STANDBY: "standby",
+    SCENE_DEEP_OFF: "deep_off",
+}
+
 # All presence scene numbers (for detection in events)
 PRESENCE_SCENE_NUMBERS = set(APARTMENT_PRESENCE_SCENES.keys())
 
@@ -105,6 +115,21 @@ APARTMENT_ALARM_SCENES = {
     SCENE_ALARM_4: "Alarm 4",
     SCENE_PANIC: "Panic",
     SCENE_DOOR_BELL: "Doorbell",
+}
+
+# Alarm scene mapping: scene_nr -> translation key
+ALARM_TRANSLATION_KEYS = {
+    SCENE_ALARM_1: "alarm_1",
+    SCENE_ALARM_2: "alarm_2",
+    SCENE_ALARM_3: "alarm_3",
+    SCENE_ALARM_4: "alarm_4",
+    SCENE_PANIC: "panic",
+    SCENE_DOOR_BELL: "doorbell",
+}
+
+# Weather protection: scene_nr -> translation key
+WEATHER_TRANSLATION_KEYS = {
+    SCENE_RAIN: "rain_protection",
 }
 
 # Weather protection scenes — read-only binary sensors, not switches
@@ -214,6 +239,90 @@ GROUP_HEATING_SCENES = {
     SCENE_2: "Economy",
     SCENE_3: "Night",
     SCENE_4: "Holiday",
+}
+
+# Scene translation keys: (group, scene_nr) -> translation key
+# Used for default/fallback scene names. User-defined scenes from dSS keep their original name.
+SCENE_TRANSLATION_KEYS = {
+    # Light
+    (GROUP_LIGHT, SCENE_OFF): "light_off",
+    (GROUP_LIGHT, SCENE_1): "light_scene_1",
+    (GROUP_LIGHT, SCENE_2): "light_scene_2",
+    (GROUP_LIGHT, SCENE_3): "light_scene_3",
+    (GROUP_LIGHT, SCENE_4): "light_scene_4",
+    # Shade
+    (GROUP_SHADE, SCENE_OFF): "shade_close",
+    (GROUP_SHADE, SCENE_1): "shade_open",
+    (GROUP_SHADE, SCENE_2): "shade_preset_2",
+    (GROUP_SHADE, SCENE_3): "shade_preset_3",
+    (GROUP_SHADE, SCENE_4): "shade_preset_4",
+    # Heating
+    (GROUP_HEATING, SCENE_OFF): "heating_protection",
+    (GROUP_HEATING, SCENE_1): "heating_comfort",
+    (GROUP_HEATING, SCENE_2): "heating_economy",
+    (GROUP_HEATING, SCENE_3): "heating_night",
+    (GROUP_HEATING, SCENE_4): "heating_holiday",
+    # Area 1
+    (GROUP_LIGHT, SCENE_AREA1_OFF): "light_area1_off",
+    (GROUP_LIGHT, SCENE_AREA1_1): "light_area1_scene_1",
+    (GROUP_LIGHT, SCENE_AREA1_2): "light_area1_scene_2",
+    (GROUP_LIGHT, SCENE_AREA1_3): "light_area1_scene_3",
+    (GROUP_SHADE, SCENE_AREA1_OFF): "shade_area1_off",
+    (GROUP_SHADE, SCENE_AREA1_1): "shade_area1_scene_1",
+    (GROUP_SHADE, SCENE_AREA1_2): "shade_area1_scene_2",
+    (GROUP_SHADE, SCENE_AREA1_3): "shade_area1_scene_3",
+    # Area 2
+    (GROUP_LIGHT, SCENE_AREA2_OFF): "light_area2_off",
+    (GROUP_LIGHT, SCENE_AREA2_1): "light_area2_scene_1",
+    (GROUP_LIGHT, SCENE_AREA2_2): "light_area2_scene_2",
+    (GROUP_LIGHT, SCENE_AREA2_3): "light_area2_scene_3",
+    (GROUP_LIGHT, SCENE_AREA2_4): "light_area2_scene_4",
+    (GROUP_SHADE, SCENE_AREA2_OFF): "shade_area2_off",
+    (GROUP_SHADE, SCENE_AREA2_1): "shade_area2_scene_1",
+    (GROUP_SHADE, SCENE_AREA2_2): "shade_area2_scene_2",
+    (GROUP_SHADE, SCENE_AREA2_3): "shade_area2_scene_3",
+    (GROUP_SHADE, SCENE_AREA2_4): "shade_area2_scene_4",
+    # Area 3
+    (GROUP_LIGHT, SCENE_AREA3_OFF): "light_area3_off",
+    (GROUP_LIGHT, SCENE_AREA3_1): "light_area3_scene_1",
+    (GROUP_LIGHT, SCENE_AREA3_2): "light_area3_scene_2",
+    (GROUP_LIGHT, SCENE_AREA3_3): "light_area3_scene_3",
+    (GROUP_LIGHT, SCENE_AREA3_4): "light_area3_scene_4",
+    (GROUP_SHADE, SCENE_AREA3_OFF): "shade_area3_off",
+    (GROUP_SHADE, SCENE_AREA3_1): "shade_area3_scene_1",
+    (GROUP_SHADE, SCENE_AREA3_2): "shade_area3_scene_2",
+    (GROUP_SHADE, SCENE_AREA3_3): "shade_area3_scene_3",
+    (GROUP_SHADE, SCENE_AREA3_4): "shade_area3_scene_4",
+    # Area 4
+    (GROUP_LIGHT, SCENE_AREA4_OFF): "light_area4_off",
+    (GROUP_LIGHT, SCENE_AREA4_1): "light_area4_scene_1",
+    (GROUP_LIGHT, SCENE_AREA4_2): "light_area4_scene_2",
+    (GROUP_LIGHT, SCENE_AREA4_3): "light_area4_scene_3",
+    (GROUP_LIGHT, SCENE_AREA4_4): "light_area4_scene_4",
+    (GROUP_SHADE, SCENE_AREA4_OFF): "shade_area4_off",
+    (GROUP_SHADE, SCENE_AREA4_1): "shade_area4_scene_1",
+    (GROUP_SHADE, SCENE_AREA4_2): "shade_area4_scene_2",
+    (GROUP_SHADE, SCENE_AREA4_3): "shade_area4_scene_3",
+    (GROUP_SHADE, SCENE_AREA4_4): "shade_area4_scene_4",
+}
+
+# Outdoor sensor key -> translation key
+OUTDOOR_SENSOR_TRANSLATION_KEYS = {
+    "temperature": "outdoor_temperature",
+    "humidity": "outdoor_humidity",
+    "brightness": "outdoor_brightness",
+    "windspeed": "wind_speed",
+    "windgust": "wind_gust",
+    "airpressure": "air_pressure",
+    "rain": "rain_intensity",
+}
+
+# Device sensor type -> translation key
+DEVICE_SENSOR_TRANSLATION_KEYS = {
+    SENSOR_TEMPERATURE: "device_temperature",
+    SENSOR_HUMIDITY: "device_humidity",
+    SENSOR_BRIGHTNESS: "device_brightness",
+    SENSOR_CO2: "device_co2",
 }
 
 # --- dS Sensor Types ---

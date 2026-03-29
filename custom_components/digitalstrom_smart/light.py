@@ -64,7 +64,7 @@ class DigitalStromLight(CoordinatorEntity, LightEntity):
         self._zone_name = zone_info["name"]
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_{zone_id}_light"
-        self._attr_name = "Light"
+        self._attr_translation_key = "zone_light"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_zone_{zone_id}")},
             "name": self._zone_name,

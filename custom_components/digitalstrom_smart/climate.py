@@ -115,7 +115,7 @@ class DigitalStromClimate(CoordinatorEntity, ClimateEntity):
         self._zone_name = zone_info["name"]
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_{zone_id}_climate"
-        self._attr_name = "Climate"
+        self._attr_translation_key = "zone_climate"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_zone_{zone_id}")},
             "name": self._zone_name,

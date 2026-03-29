@@ -23,6 +23,7 @@ from .const import (
     NAMED_SCENES_SHADE,
     GROUP_HEATING_SCENES,
     AREA_SCENE_NAMES,
+    SCENE_TRANSLATION_KEYS,
     CONF_ENABLED_ZONES,
 )
 from .coordinator import DigitalStromCoordinator
@@ -108,7 +109,13 @@ class DigitalStromScene(Scene):
         dss_id = coordinator.dss_id
         group_label = GROUP_NAMES.get(group, f"G{group}")
         self._attr_unique_id = f"ds_{dss_id}_{zone_id}_g{group}_scene_{scene_number}"
-        self._attr_name = f"{group_label} {scene_name}"
+        # Use translation_key for default scenes, hardcoded name for user-defined
+        has_custom_name = (zone_id, group, scene_number) in coordinator.scene_names
+        translation_key = SCENE_TRANSLATION_KEYS.get((group, scene_number))
+        if not has_custom_name and translation_key:
+            self._attr_translation_key = translation_key
+        else:
+            self._attr_name = f"{group_label} {scene_name}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_zone_{zone_id}")},
             "name": self._zone_name,

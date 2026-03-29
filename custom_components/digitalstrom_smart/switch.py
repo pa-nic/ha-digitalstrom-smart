@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import DigitalStromApiError
-from .const import DOMAIN, MANUFACTURER, GROUP_JOKER, CONF_ENABLED_ZONES, APARTMENT_ALARM_SCENES, SCENE_DOOR_BELL
+from .const import DOMAIN, MANUFACTURER, GROUP_JOKER, CONF_ENABLED_ZONES, APARTMENT_ALARM_SCENES, ALARM_TRANSLATION_KEYS, SCENE_DOOR_BELL
 from .coordinator import DigitalStromCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,12 +58,12 @@ class DigitalStromAlarmSwitch(CoordinatorEntity, SwitchEntity):
     _attr_has_entity_name = True
 
     _ICONS = {
-        "Alarm 1": "mdi:alarm-light",
-        "Alarm 2": "mdi:alarm-light-outline",
-        "Alarm 3": "mdi:fire",
-        "Alarm 4": "mdi:alert",
-        "Panic": "mdi:alert-octagon",
-        "Doorbell": "mdi:bell-ring",
+        "alarm_1": "mdi:alarm-light",
+        "alarm_2": "mdi:alarm-light-outline",
+        "alarm_3": "mdi:fire",
+        "alarm_4": "mdi:alert",
+        "panic": "mdi:alert-octagon",
+        "doorbell": "mdi:bell-ring",
     }
 
     def __init__(
@@ -73,8 +73,12 @@ class DigitalStromAlarmSwitch(CoordinatorEntity, SwitchEntity):
         self._scene_nr = scene_nr
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_apartment_alarm_{scene_nr}"
-        self._attr_name = name
-        self._attr_icon = self._ICONS.get(name, "mdi:alarm-light")
+        tkey = ALARM_TRANSLATION_KEYS.get(scene_nr)
+        if tkey:
+            self._attr_translation_key = tkey
+        else:
+            self._attr_name = name
+        self._attr_icon = self._ICONS.get(tkey or "", "mdi:alarm-light")
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_apartment")},
             "name": "Digital Strom Server",

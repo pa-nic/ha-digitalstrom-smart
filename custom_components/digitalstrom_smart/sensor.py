@@ -44,6 +44,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     DOMAIN, MANUFACTURER, CONF_ENABLED_ZONES, GROUP_TEMP_CONTROL,
     SENSOR_TEMPERATURE, SENSOR_HUMIDITY, SENSOR_BRIGHTNESS, SENSOR_CO2,
+    OUTDOOR_SENSOR_TRANSLATION_KEYS, DEVICE_SENSOR_TRANSLATION_KEYS,
 )
 from .coordinator import DigitalStromCoordinator
 
@@ -205,7 +206,7 @@ class DigitalStromEnergySensor(CoordinatorEntity, SensorEntity):
     """Apartment-level power consumption sensor."""
 
     _attr_has_entity_name = True
-    _attr_name = "Power Consumption"
+    _attr_translation_key = "power_consumption"
     _attr_device_class = SensorDeviceClass.POWER
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.WATT
@@ -248,7 +249,7 @@ class DigitalStromTemperatureSensor(CoordinatorEntity, SensorEntity):
         self._zone_id = zone_id
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_{zone_id}_temperature"
-        self._attr_name = "Temperature"
+        self._attr_translation_key = "temperature"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_zone_{zone_id}")},
             "name": zone_info["name"],
@@ -278,7 +279,7 @@ class DigitalStromCurrentTempSensor(CoordinatorEntity, SensorEntity):
         self._zone_id = zone_id
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_{zone_id}_current_temp"
-        self._attr_name = "Temperature"
+        self._attr_translation_key = "current_temperature"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_zone_{zone_id}")},
             "name": zone_info["name"],
@@ -308,7 +309,7 @@ class DigitalStromTargetTempSensor(CoordinatorEntity, SensorEntity):
         self._zone_id = zone_id
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_{zone_id}_target_temp"
-        self._attr_name = "Target Temperature"
+        self._attr_translation_key = "target_temperature"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_zone_{zone_id}")},
             "name": zone_info["name"],
@@ -337,7 +338,7 @@ class DigitalStromHeatingOutputSensor(CoordinatorEntity, SensorEntity):
         self._zone_id = zone_id
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_{zone_id}_heating_output"
-        self._attr_name = "Heating Output"
+        self._attr_translation_key = "heating_output"
         self._attr_icon = "mdi:radiator"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_zone_{zone_id}")},
@@ -380,7 +381,11 @@ class DigitalStromDeviceSensor(CoordinatorEntity, SensorEntity):
         dev_name = dev_info.get("name", "") or dsuid[:8]
         suffix = sensor_config["suffix"]
         self._attr_unique_id = f"ds_{dss_id}_dev_{dsuid}_{suffix.lower()}"
-        self._attr_name = f"{dev_name} {suffix}"
+        translation_key = DEVICE_SENSOR_TRANSLATION_KEYS.get(sensor_type)
+        if translation_key:
+            self._attr_translation_key = translation_key
+        else:
+            self._attr_name = f"{dev_name} {suffix}"
         self._attr_device_class = sensor_config["device_class"]
         self._attr_native_unit_of_measurement = sensor_config["unit"]
         self._attr_device_info = {
@@ -418,7 +423,11 @@ class DigitalStromOutdoorSensor(CoordinatorEntity, SensorEntity):
         self._sensor_key = sensor_key
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_outdoor_{sensor_key}"
-        self._attr_name = sensor_def["name"]
+        translation_key = OUTDOOR_SENSOR_TRANSLATION_KEYS.get(sensor_key)
+        if translation_key:
+            self._attr_translation_key = translation_key
+        else:
+            self._attr_name = sensor_def["name"]
         self._attr_device_class = sensor_def["device_class"]
         self._attr_native_unit_of_measurement = sensor_def["unit"]
         self._attr_device_info = {
@@ -457,7 +466,7 @@ class DigitalStromCircuitSensor(CoordinatorEntity, SensorEntity):
         circuit_name = circuit.get("name", self._dsuid[:8])
         hw_name = circuit.get("hwName", "dSM")
         self._attr_unique_id = f"ds_{dss_id}_circuit_{self._dsuid}"
-        self._attr_name = "Power"
+        self._attr_translation_key = "circuit_power"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_circuit_{self._dsuid}")},
             "name": circuit_name,

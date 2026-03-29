@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MANUFACTURER, GROUP_JOKER, CONF_ENABLED_ZONES, APARTMENT_WEATHER_SCENES, SCENE_RAIN
+from .const import DOMAIN, MANUFACTURER, GROUP_JOKER, CONF_ENABLED_ZONES, APARTMENT_WEATHER_SCENES, WEATHER_TRANSLATION_KEYS, SCENE_RAIN
 from .coordinator import DigitalStromCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -199,7 +199,11 @@ class DigitalStromWeatherProtectionSensor(CoordinatorEntity, BinarySensorEntity)
         self._scene_nr = scene_nr
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_weather_{scene_nr}"
-        self._attr_name = f"{name} Protection"
+        tkey = WEATHER_TRANSLATION_KEYS.get(scene_nr)
+        if tkey:
+            self._attr_translation_key = tkey
+        else:
+            self._attr_name = f"{name} Protection"
         self._attr_icon = self._ICONS.get(name, "mdi:alert")
         self._attr_device_class = BinarySensorDeviceClass.MOISTURE if scene_nr == SCENE_RAIN else BinarySensorDeviceClass.SAFETY
         self._attr_device_info = {
@@ -223,7 +227,7 @@ class DigitalStromRainSensor(CoordinatorEntity, BinarySensorEntity):
 
     _attr_has_entity_name = True
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
-    _attr_name = "Rain"
+    _attr_translation_key = "rain"
 
     def __init__(self, coordinator: DigitalStromCoordinator) -> None:
         super().__init__(coordinator)

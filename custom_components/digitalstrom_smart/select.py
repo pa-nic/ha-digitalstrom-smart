@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MANUFACTURER, APARTMENT_PRESENCE_SCENES
+from .const import DOMAIN, MANUFACTURER, APARTMENT_PRESENCE_KEYS
 from .coordinator import DigitalStromCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,16 +37,16 @@ class DigitalStromPresenceSelect(CoordinatorEntity, SelectEntity):
     """Apartment presence mode: Present, Absent, Sleeping, etc."""
 
     _attr_has_entity_name = True
-    _attr_name = "Presence Mode"
+    _attr_translation_key = "presence_mode"
     _attr_icon = "mdi:home-account"
 
     def __init__(self, coordinator: DigitalStromCoordinator) -> None:
         super().__init__(coordinator)
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_apartment_presence"
-        self._attr_options = list(APARTMENT_PRESENCE_SCENES.values())
-        self._scene_to_name = APARTMENT_PRESENCE_SCENES
-        self._name_to_scene = {v: k for k, v in APARTMENT_PRESENCE_SCENES.items()}
+        self._attr_options = list(APARTMENT_PRESENCE_KEYS.values())
+        self._scene_to_key = APARTMENT_PRESENCE_KEYS
+        self._key_to_scene = {v: k for k, v in APARTMENT_PRESENCE_KEYS.items()}
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_apartment")},
             "name": "Digital Strom Server",
@@ -58,11 +58,11 @@ class DigitalStromPresenceSelect(CoordinatorEntity, SelectEntity):
     def current_option(self) -> str | None:
         scene = self.coordinator.apartment_presence
         if scene is not None:
-            return self._scene_to_name.get(scene)
+            return self._scene_to_key.get(scene)
         return None
 
     async def async_select_option(self, option: str) -> None:
-        scene_nr = self._name_to_scene.get(option)
+        scene_nr = self._key_to_scene.get(option)
         if scene_nr is not None:
             await self.coordinator.call_apartment_scene(scene_nr)
             self.coordinator.set_apartment_presence(scene_nr)

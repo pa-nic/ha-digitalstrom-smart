@@ -88,7 +88,7 @@ class DigitalStromCover(CoordinatorEntity, CoverEntity):
         self._invert = invert
         dss_id = coordinator.dss_id
         self._attr_unique_id = f"ds_{dss_id}_{zone_id}_cover"
-        self._attr_name = "Cover"
+        self._attr_translation_key = "zone_cover"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{dss_id}_zone_{zone_id}")},
             "name": self._zone_name,
