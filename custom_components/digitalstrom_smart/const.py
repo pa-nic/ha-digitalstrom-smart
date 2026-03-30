@@ -317,14 +317,6 @@ OUTDOOR_SENSOR_TRANSLATION_KEYS = {
     "rain": "rain_intensity",
 }
 
-# Device sensor type -> translation key
-DEVICE_SENSOR_TRANSLATION_KEYS = {
-    SENSOR_TEMPERATURE: "device_temperature",
-    SENSOR_HUMIDITY: "device_humidity",
-    SENSOR_BRIGHTNESS: "device_brightness",
-    SENSOR_CO2: "device_co2",
-}
-
 # --- dS Sensor Types ---
 SENSOR_TEMPERATURE = 9
 SENSOR_HUMIDITY = 13
@@ -336,6 +328,14 @@ SENSOR_WIND_GUST = 15
 SENSOR_WIND_DIRECTION = 16
 SENSOR_RAIN = 17
 SENSOR_AIR_PRESSURE = 18
+
+# Device sensor type -> translation key
+DEVICE_SENSOR_TRANSLATION_KEYS = {
+    SENSOR_TEMPERATURE: "device_temperature",
+    SENSOR_HUMIDITY: "device_humidity",
+    SENSOR_BRIGHTNESS: "device_brightness",
+    SENSOR_CO2: "device_co2",
+}
 
 SENSOR_TYPE_NAMES = {
     SENSOR_TEMPERATURE: "Temperature",
